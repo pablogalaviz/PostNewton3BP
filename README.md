@@ -4,7 +4,7 @@ PostNewton3BP evolves system of two and three post-Newtonian particles
 
 ## Synopsis
 
-PostNewton2BP is a replacent of Olliptic's Tbh_pn module.  
+PostNewton3BP is a replacent of Olliptic's Tbh_pn module.  
 
 
 ## dependencies
