@@ -1,10 +1,10 @@
-# olliptic_g4
+# Post-Newton 3BP
 
-olliptic_g4 evolves Elliptic-Hyperbolic PDF system   
+PostNewton3BP evolves system of two and three post-Newtonian particles   
 
 ## Synopsis
 
-Olliptic's current main application is evolutiuon of Schroedinger-Poisson system
+PostNewton2BP is a replacent of Olliptic's Tbh_pn module.  
 
 
 ## dependencies
@@ -13,24 +13,26 @@ Olliptic's current main application is evolutiuon of Schroedinger-Poisson system
 
 Install:
 
-`sudo apt-get install  openmpi-bin libhdf5-openmpi-10-dbg libhdf5-openmpi-10 libhdf5-openmpi-dev libopenmpi-dev libopenmpi1.10 hdf5-tools h5utils libboost-all-dev`
+`sudo apt-get install  openmpi-bin libhdf5-openmpi-10-dbg libhdf5-openmpi-10 libhdf5-openmpi-dev libopenmpi-dev libopenmpi1.10 hdf5-tools h5utils libboost-all-dev gsl-shlibs gsl`
 
 ## Mac os x with fink
 
 Install:
 
-`fink install openmpi openmpi-shlibs`
+`fink install openmpi openmpi-shlibs gsl-shlibs gsl`
 
 
-Download boost >= 1.63 and install it at /usr/local/:
+[Download boost](http://www.boost.org/users/download/) >= 1.63 and install it at /usr/local/:
 
 `tar -zxvf boost_1_63_0.tar.gz`
 
 `cd boost_1_63_0`
 
-`./b2 install`
+`./bootstrap.sh`
 
-Download hdf5 >= 1.8.18 and compile it with openMPI:
+`sudo ./b2 install`
+
+[Download hdf5](https://support.hdfgroup.org/HDF5/release/obtainsrc518.html#src) >= 1.8.18 and compile it with openMPI:
 
 `tar -zxvf hdf5-1.8.18.tar.gz`
 
@@ -59,4 +61,4 @@ run
 
 try
 
-`./Olliptic -h` 
+`./PN3BP.x -h` 
