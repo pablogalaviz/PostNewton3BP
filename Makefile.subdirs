@@ -1,0 +1,55 @@
+# Makefile.subdirs
+# These commands are common to all standard source subdirectories.
+# For example, in the boundary directory there is a Makefile containing the 
+# lines
+# 
+# NAME := boundary
+# OBJS := bam_$(NAME).o epol.o mask.o
+# include $(TOP)/Makefile.subdirs
+
+# The only complication is that we don't want to clutter the source
+# directories with object files and library files, so we work in
+# a separate directory LIBDIR
+
+ifeq ($(LANGUAGE),C)
+  COMP	= $(CC)
+  end	= c
+else
+  COMP=$(CPP)
+  end	= cc
+endif
+
+
+
+# the name of the library that we want to create
+NEWLIB := $(NAME).a
+
+# directory for the library
+LIBDIR  = $(BASE)/lib
+SRCDIR	= $(shell /bin/pwd)/src
+HDRSDIR	= $(shell /bin/pwd)/includes
+
+# directory for the object files of this library
+OBJDIR  = $(LIBDIR)/obj/$(NAME)
+OBJSWITHPATH = $(addprefix $(OBJDIR)/,$(OBJS))
+HSFWITHPATH = $(addprefix $(HDRSDIR)/,$(HSF))
+
+# look for unnecessary .o files inside the library
+DELLIBS  = $(filter-out $(OBJDIR),$(shell ar -t $(LIBDIR)/$(NEWLIB)))
+DELLIBS := $(addprefix $(OBJDIR)/,$(DELLIBS))
+
+
+
+$(LIBDIR)/$(NEWLIB): $(OBJSWITHPATH)
+	@echo "-----------------------------------------------------------------------------------"
+	@echo "library " $(NEWLIB) 
+	#ar -d $@ $(DELLIBS) 
+	@echo ar -d $@ $(DELLIBS)
+	@ar -rucs $@ $(OBJSWITHPATH) 
+	@echo "-----------------------------------------------------------------------------------"
+#$(HSFWITHPATH)
+$(OBJDIR)/%.o: $(SRCDIR)/%.cc
+	@echo ''
+	@echo '===> Building obj' $*.o 
+	@echo ''
+	$(COMP) $(CPPFLAGS) -o $@ -c -I/usr/local/include $(HEADERDIR) $(VTK_INC) $(SRCDIR)/$*.cc
