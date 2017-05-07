@@ -2,4 +2,19 @@
 directory=TB_Test
 
 [evolution]
+
+ode_method=rk4imp   # rk2,rk4,rkck,rk8pd,
+                   #                     rk2imp,rk4imp,bsimp,gear1,gear2]
+plane_constrain = yes
+chaos_test=yes
+particles=2
+initial_dt=0.1
+                     
+factor_chaos_test=100
+                   
+scaling_variable=1                  
+scaling_derivative=1
+epsilon_rel=9.9999999999999995e-07
+epsilon_abs=1e-6
+
 final_time=1

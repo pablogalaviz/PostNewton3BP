@@ -30,20 +30,17 @@ int main(int ac, char*av[])
 
 {
 
+
+  
   clock_t tStart = clock();
   
   string output_directory;
   
   double final_time;
-  bool evolution_verbose;
   bool output_verbose;
   bool debug;
   double delta_time;
 
-  string ode_method; 
-  double dt0;
-  double eps_abs;
-  double eps_rel;
   
   
   try {
@@ -62,12 +59,18 @@ int main(int ac, char*av[])
     po::options_description evolutionOptions("Evolution options");
 
    evolutionOptions.add_options()
-      ("evolution.verbose", po::value<bool>(&evolution_verbose)->default_value(false),"Shows information about the evolution progress ")
-      ("evolution.ode_method", po::value<string>(&ode_method)->default_value("rk8pd"),"ODE method, one of:[rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2]")
-      ("evolution.initial_dt", po::value<double>(&dt0)->default_value(1e-6),"Initial time-step")
-      ("evolution.eps_rel", po::value<double>(&eps_rel)->default_value(1e-6),"Relative error tolerance")
-      ("evolution.eps_abs", po::value<double>(&eps_abs)->default_value(1e-6),"Absolute error tolerance")
-      ("evolution.final_time", po::value<double>(&final_time)->default_value(1),"Final evolution time");
+      ("evolution.verbose", po::value<bool>()->default_value(false),"Shows information about the evolution progress ")
+      ("evolution.ode_method", po::value<string>()->default_value("rk8pd"),"ODE method, one of:[rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2]")
+     ("evolution.plane_constrain", po::value<bool>()->default_value(false),"Constrain evolution to a plane")
+     ("evolution.chaos_test", po::value<bool>()->default_value(false),"Calculate  Lyapunov chaos indicator")
+     ("evolution.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
+     ("evolution.initial_dt", po::value<double>()->default_value(1e-6),"Initial time-step")
+     ("evolution.factor_chaos_test", po::value<double>()->default_value(100),"Scaling factor for chaos test")
+     ("evolution.scaling_variable", po::value<double>()->default_value(1),"Scale of variables on adaptive step size control")
+     ("evolution.scaling_derivative", po::value<double>()->default_value(1),"Scale of deivative on adaptive  step size control")
+     ("evolution.epsilon_rel", po::value<double>()->default_value(1e-6),"Relative error tolerance")
+     ("evolution.epsilon_abs", po::value<double>()->default_value(1e-6),"Absolute error tolerance")
+     ("evolution.final_time", po::value<double>(&final_time)->default_value(1),"Final evolution time");
     
     po::options_description outputOptions("Output options");
 

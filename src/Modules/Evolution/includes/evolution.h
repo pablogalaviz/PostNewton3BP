@@ -35,6 +35,9 @@
 class evolution
 {
 
+  src::severity_logger< severity_level > lg;
+
+  bool verbose; 
 
   const gsl_odeiv_step_type * step_type;
 
@@ -57,6 +60,16 @@ class evolution
   double final_time; 
 
   double dt; 
+
+  size_t ode_size; 
+
+  size_t number_of_variables; 
+
+  size_t number_of_particles; 
+  
+  double *y;
+  
+  double *dy; 
   
  public:
 
@@ -66,7 +79,7 @@ class evolution
 
  bool update(double &t);
  
- 
+ void init(valarray<double> _y, valarray<double> _dy, valarray<double> _par);
 
 };
 
