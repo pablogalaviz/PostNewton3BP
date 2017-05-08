@@ -63,7 +63,7 @@ int main(int ac, char*av[])
       ("evolution.ode_method", po::value<string>()->default_value("rk8pd"),"ODE method, one of:[rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2]")
      ("evolution.plane_constrain", po::value<bool>()->default_value(false),"Constrain evolution to a plane")
      ("evolution.chaos_test", po::value<bool>()->default_value(false),"Calculate  Lyapunov chaos indicator")
-     ("evolution.jacA", po::value<bool>()->default_value(false),"Uses analytic Jacobian (in chaos test)")
+     ("evolution.JacA", po::value<bool>()->default_value(false),"Uses analytic Jacobian (in chaos test)")
      ("evolution.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
      ("evolution.initial_dt", po::value<double>()->default_value(1e-6),"Initial time-step")
      ("evolution.jacobian_dx", po::value<double>()->default_value(1e-6),"Numeric Jacobian initial dx ")
@@ -181,10 +181,11 @@ int main(int ac, char*av[])
 
     
     evolution evol(vm);
-
-       
+ 
     output my_output(output_directory,output_verbose, debug, delta_time);
 
+    set_initial_data(&evol,vm);
+    
 
     double t=0; 
     bool proceed = true;

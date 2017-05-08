@@ -64,9 +64,7 @@ class evolution
   size_t ode_size; 
 
   size_t number_of_variables; 
-
-  size_t NDvar; 
-  
+ 
   size_t number_of_particles; 
   
   double *y;
@@ -300,13 +298,16 @@ class evolution
   
  public:
 
+  size_t NDvar; 
+
+  
  evolution(po::variables_map &vm);
 
  ~evolution(){};
 
  bool update(double &t);
  
- void init(valarray<double> _y, valarray<double> _dy, valarray<double> _par);
+ void init(valarray<double> _y, valarray<double> _par);
 
  void close();
  

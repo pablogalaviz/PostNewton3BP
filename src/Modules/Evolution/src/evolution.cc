@@ -78,21 +78,47 @@ evolution::evolution(po::variables_map &vm){
     }
 
   bool plane_constrain =  vm["evolution.plane_constrain"].as<bool>();
-  
-  if(plane_constrain || number_of_particles == 2) 
-    number_of_variables = number_of_particles*4;
-  else
-    number_of_variables = 18;
 
-  ode_size=number_of_variables*2;
+
+  bool pnSOlo =false;
+  bool pnSSlo=false;
+  bool pnS2lo=false;
+#ifdef odePNSlo
+  pnSOlo =vm["terms.pnSOlo"].as<bool>();
+  pnSSlo=vm["terms.pnSSlo"].as<bool>();
+  pnS2lo=vm["terms.pnS2lo"].as<bool>();
+#endif
+  bool pnSOnlo=false;
+  bool pnSSnlo=false;
+#ifdef odePNSnlo
+  pnSOnlo =vm["terms.pnSOnlo"].as<bool>();
+  pnSSnlo=vm["terms.pnSSnlo"].as<bool>();
+#endif
+
+  bool spin =  pnSOlo||pnSSlo||pnS2lo||pnSOnlo||pnSSnlo;
+    
+  if(number_of_particles==2 && ! plane_constrain  && !spin)
+    plane_constrain=true;
+  else
+    if(plane_constrain && spin)
+      plane_constrain=false;
+
+  number_of_variables = plane_constrain ?  number_of_particles*4 : number_of_particles*6;
+
+  if(spin) 
+    number_of_variables += plane_constrain ?  number_of_particles*2 : number_of_particles*3;
+
+  ode_size = number_of_variables ;
 
   NDvar = number_of_variables; 
 
   
   bool chaos_test = vm["evolution.chaos_test"].as<bool>() ;
-  
+ 
   if(chaos_test) {
-    
+
+    ode_size *= 2;
+
     double scale_abs [ode_size];
     
     double fac =  vm["evolution.factor_chaos_test"].as<double>();
@@ -159,6 +185,7 @@ void evolution::set_rhs(po::variables_map &vm)
 
   size_t space_dimension = 3; 
 
+  
   if(number_of_particles == 2 || vm["evolution.plane_constrain"].as<bool>() )
     space_dimension = 2; 
 
@@ -228,7 +255,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
   
 
-  switch ( number_of_particles ) {
+switch ( number_of_particles ) {
 
   case 2 : 
 
@@ -480,6 +507,8 @@ void evolution::set_rhs(po::variables_map &vm)
       
     }
   }
+
+
   
   if(vm["evolution.chaos_test"].as<bool>())
     
@@ -501,7 +530,7 @@ void evolution::set_rhs(po::variables_map &vm)
 
 
 
-void evolution::init(valarray<double> _y, valarray<double> _dy, valarray<double> _par){
+void evolution::init(valarray<double>  &_y, valarray<double>  &_par){
 
   if( _y.size() != ode_size || _dy.size() != ode_size || _par.size() != number_of_particles )
     {

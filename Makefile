@@ -93,6 +93,7 @@ EXED = $(BASE)/exe
 # Modules (add a new module here)
 # ---------------------------------------------------------------
 libpaths = src/Modules/Evolution
+libpaths += src/Modules/Initial_data
 libpaths += src/Modules/Output
 libpaths += src/Modules/Utils
 
