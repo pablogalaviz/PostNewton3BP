@@ -32,6 +32,7 @@
 
 #include <mpi.h>
 #include <fstream>
+#include <valarray>
 
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
@@ -78,6 +79,11 @@ void setupLog(string dir_name, bool silent, bool debug);
 
 void makeOutputDirectory(string dir_name);
 
+void central_deriv (double fm1, double fp1, 
+		    double fmh, double fph, 
+		    double x,
+		    double h, double *result, 
+		    double *abserr_round, double *abserr_trunc);
 
 
 #endif

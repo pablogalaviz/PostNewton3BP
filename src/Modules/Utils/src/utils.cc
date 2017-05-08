@@ -150,3 +150,41 @@ void makeOutputDirectory(string dir_name){
 
 
 }
+
+
+
+
+void central_deriv (double fm1, double fp1, 
+		    double fmh, double fph, 
+		    double x,
+		    double h, double *result, 
+		    double *abserr_round, double *abserr_trunc)
+{
+  /* Compute the derivative using the 5-point rule (x-h, x-h/2, x,
+     x+h/2, x+h). Note that the central point is not used.  
+
+     Compute the error using the difference between the 5-point and
+     the 3-point rule (x-h,x,x+h). Again the central point is not
+     used. */
+
+  
+  double r3 = 0.5 * (fp1 - fm1);
+  double r5 = (4.0 / 3.0) * (fph - fmh) - (1.0 / 3.0) * r3;
+
+  double e3 = (fabs (fp1) + fabs (fm1)) * GSL_DBL_EPSILON;
+  double e5 = 2.0 * (fabs (fph) + fabs (fmh)) * GSL_DBL_EPSILON + e3;
+
+  double dy = GSL_MAX (fabs (r3), fabs (r5)) * fabs (x) * GSL_DBL_EPSILON;
+
+  /* The truncation error in the r5 approximation itself is O(h^4).
+     However, for safety, we estimate the error from r5-r3, which is
+     O(h^2).  By scaling h we will minimise this estimated error, not
+     the actual truncation error in r5. */
+
+  *result = r5 / h;
+  *abserr_trunc = fabs ((r5 - r3) / h); /* Estimated truncation error O(h^2) */
+  *abserr_round = fabs (e5 / h) + dy;   /* Rounding error (cancellations) */
+}
+
+
+

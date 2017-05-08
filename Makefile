@@ -98,7 +98,11 @@ libpaths += src/Modules/Utils
 
 # ---------------------------------------------------------------
 
-
+#PN1 = -DodePN1
+##PN2 = -DodePN2
+#PN2_5 = -DodePN2_5
+##PNSlo = -DodePNSlo
+##PNSnlo = -DodePNSnlo
 
 CPPFLAGS += -Wno-deprecated -std=c++11 $(OPTFLAGS)
 

@@ -63,8 +63,10 @@ int main(int ac, char*av[])
       ("evolution.ode_method", po::value<string>()->default_value("rk8pd"),"ODE method, one of:[rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2]")
      ("evolution.plane_constrain", po::value<bool>()->default_value(false),"Constrain evolution to a plane")
      ("evolution.chaos_test", po::value<bool>()->default_value(false),"Calculate  Lyapunov chaos indicator")
+     ("evolution.jacA", po::value<bool>()->default_value(false),"Uses analytic Jacobian (in chaos test)")
      ("evolution.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
      ("evolution.initial_dt", po::value<double>()->default_value(1e-6),"Initial time-step")
+     ("evolution.jacobian_dx", po::value<double>()->default_value(1e-6),"Numeric Jacobian initial dx ")
      ("evolution.factor_chaos_test", po::value<double>()->default_value(100),"Scaling factor for chaos test")
      ("evolution.scaling_variable", po::value<double>()->default_value(1),"Scale of variables on adaptive step size control")
      ("evolution.scaling_derivative", po::value<double>()->default_value(1),"Scale of deivative on adaptive  step size control")
@@ -80,16 +82,38 @@ int main(int ac, char*av[])
       ("output.verbose", po::value<bool>(&output_verbose)->default_value(false),"output additional information")
       ("output.delta_time", po::value<double>(&delta_time)->default_value(1),"time interval of output");
 
+    po::options_description termsOptions("Post-Newtonian terms options");
+
+    termsOptions.add_options()
+#ifdef odePN1
+      ("terms.pn1", po::value<bool>()->default_value(false),"Activate post-Newtonian terms of order 1  ")
+#endif
+#ifdef odePN2
+      ("terms.pn2", po::value<bool>()->default_value(false),"Activate post-Newtonian terms of order 2  ")
+#endif
+#ifdef odePN2_5
+      ("terms.pn2_5", po::value<bool>()->default_value(false),"Activate post-Newtonian terms of order 2.5  ")
+#endif
+#ifdef odePNSlo
+      ("terms.pnSOlo", po::value<bool>()->default_value(false),"Activate spin-orbit post-Newtonian terms of leading order  ")
+      ("terms.pnSSlo", po::value<bool>()->default_value(false),"Activate spin-spin post-Newtonian terms of leading order  ")
+      ("terms.pnS2lo", po::value<bool>()->default_value(false),"Activate self-spin post-Newtonian terms of leading order  ")
+#endif
+#ifdef odePNSnlo      
+      ("terms.pnSOnlo", po::value<bool>()->default_value(false),"Activate spin-orbit post-Newtonian terms of next-to leading order  ")
+      ("terms.pnSSnlo", po::value<bool>()->default_value(false),"Activate spin-spin post-Newtonian terms of next-to leading order  ")
+#endif
+      ;
     
     po::positional_options_description p;
     p.add("input_file", -1);
 
     
     po::options_description cmdline_options;
-    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions);
+    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions).add(termsOptions);
 
     po::options_description config_file_options;
-    config_file_options.add(evolutionOptions).add(outputOptions);
+    config_file_options.add(evolutionOptions).add(outputOptions).add(termsOptions);
 
 
     po::variables_map vm;

@@ -63,10 +63,12 @@ evolution::evolution(po::variables_map &vm){
   time =0; 
   dt = vm["evolution.initial_dt"].as<double>();
   final_time = vm["evolution.final_time"].as<double>();
+  dx = vm["evolution.jacobian_dx"].as<double>();
 
   number_of_particles  = vm["evolution.particles"].as<size_t>();
+
   
-  if (Nparticles < 2 || number_of_particles > 3)
+  if (number_of_particles < 2 || number_of_particles > 3)
     {
       
       BOOST_LOG_SEV(lg, error) << "evolution.particles  should be  2 or 3.";
@@ -84,6 +86,9 @@ evolution::evolution(po::variables_map &vm){
 
   ode_size=number_of_variables*2;
 
+  NDvar = number_of_variables; 
+
+  
   bool chaos_test = vm["evolution.chaos_test"].as<bool>() ;
   
   if(chaos_test) {
@@ -105,15 +110,15 @@ evolution::evolution(po::variables_map &vm){
 					    vm["evolution.scaling_variable"].as<double>(),
 					    vm["evolution.scaling_derivative"].as<double>(),
 					    scale_abs,
-					   ode_size);
+					    ode_size);
 
   }
   else
     control = gsl_odeiv_control_standard_new (
-					    vm["evolution.epsilon_abs"].as<double>(),
-					    vm["evolution.epsilon_rel"].as<double>(),
-					    vm["evolution.scaling_variable"].as<double>(),
-					    vm["evolution.scaling_derivative"].as<double>());
+					      vm["evolution.epsilon_abs"].as<double>(),
+					      vm["evolution.epsilon_rel"].as<double>(),
+					      vm["evolution.scaling_variable"].as<double>(),
+					      vm["evolution.scaling_derivative"].as<double>());
 
 
 
@@ -152,123 +157,108 @@ evolution::evolution(po::variables_map &vm){
 void evolution::set_rhs(po::variables_map &vm)
 {
 
-  system.dimension = NTvar;
+  size_t space_dimension = 3; 
+
+  if(number_of_particles == 2 || vm["evolution.plane_constrain"].as<bool>() )
+    space_dimension = 2; 
+
+  
+  system.dimension = ode_size;
 
   system.params = &par[0];
 
-  jacN_F = &tbh_pn::jac_numN_F;
+  jacN_F = &evolution::jac_numN_F;
 
 
-  rhs1PN_F = &tbh_pn::rhs_zero;
-  jac1PN_F = &tbh_pn::jac_zero;
+  rhs1PN_F = &evolution::rhs_zero;
+  jac1PN_F = &evolution::jac_zero;
 
-  rhs2PN_F = &tbh_pn::rhs_zero;
-  jac2PN_F = &tbh_pn::jac_zero;
+  rhs2PN_F = &evolution::rhs_zero;
+  jac2PN_F = &evolution::jac_zero;
 
-  rhs2_5PN_F = &tbh_pn::rhs_zero;
-  jac2_5PN_F = &tbh_pn::jac_zero;
+  rhs2_5PN_F = &evolution::rhs_zero;
+  jac2_5PN_F = &evolution::jac_zero;
 
-  rhsSOloPN_F = &tbh_pn::rhs_zero;
-  jacSOloPN_F = &tbh_pn::jac_zero;
+  rhsSOloPN_F = &evolution::rhs_zero;
+  jacSOloPN_F = &evolution::jac_zero;
 
-  rhsSSloPN_F = &tbh_pn::rhs_zero;
-  jacSSloPN_F = &tbh_pn::jac_zero;
+  rhsSSloPN_F = &evolution::rhs_zero;
+  jacSSloPN_F = &evolution::jac_zero;
  
 
-  rhsS2loPN_F = &tbh_pn::rhs_zero;
-  jacS2loPN_F = &tbh_pn::jac_zero;
+  rhsS2loPN_F = &evolution::rhs_zero;
+  jacS2loPN_F = &evolution::jac_zero;
  
-  rhsSOnloPN_F = &tbh_pn::rhs_zero;
-  jacSOnloPN_F = &tbh_pn::jac_zero;
+  rhsSOnloPN_F = &evolution::rhs_zero;
+  jacSOnloPN_F = &evolution::jac_zero;
   
 
 #ifdef odePN1
-  if(pn1)
-    jac1PN_F = &tbh_pn::jac_num1PN_F;
+  if(vm["terms.pn1"].as<bool>())
+    jac1PN_F = &evolution::jac_num1PN_F;
 #endif
 
 #ifdef odePN2
-  if(pn2)
-    jac2PN_F = &tbh_pn::jac_num2PN_F;
+  if(vm["terms.pn2"].as<bool>())
+    jac2PN_F = &evolution::jac_num2PN_F;
 #endif
   
 #ifdef odePN2_5
-  if(pn2_5)
-    jac2_5PN_F = &tbh_pn::jac_num2_5PN_F;
+  if(vm["terms.pn2_5"].as<bool>())
+    jac2_5PN_F = &evolution::jac_num2_5PN_F;
 #endif
 
 #ifdef odePNSlo
-  if(pnSOlo)
-    jacSOloPN_F = &tbh_pn::jac_numSOloPN_F;
+  if(vm["terms.pnSOlo"].as<bool>())
+    jacSOloPN_F = &evolution::jac_numSOloPN_F;
 
   
-  if(pnSSlo)
-    jacSSloPN_F = &tbh_pn::jac_numSSloPN_F;
+  if(vm["terms.pnSSlo"].as<bool>())
+    jacSSloPN_F = &evolution::jac_numSSloPN_F;
 
 
-  if(pnS2lo)
-    jacS2loPN_F = &tbh_pn::jac_numS2loPN_F;
+  if(vm["terms.pnS2lo"].as<bool>())
+    jacS2loPN_F = &evolution::jac_numS2loPN_F;
 
 #endif
   
 #ifdef odePNSnlo
-  if(pnSOnlo)
-    jacSOnloPN_F = &tbh_pn::jac_numSOnloPN_F;
+  if(vm["terms.pnSOnlo"].as<bool>())
+    jacSOnloPN_F = &evolution::jac_numSOnloPN_F;
 #endif
   
 
-  HLOSO = HZERO;
-
-  HLOSS = HZERO;
-
-  HLOS2 = HZERO;
-
-  HNLOSO = HZERO;
-
-  HNLOSS = HZERO;
-
-
-  switch ( num_par ) {
+  switch ( number_of_particles ) {
 
   case 2 : 
 
-    switch ( space_dim ) {
+    switch ( space_dimension ) {
 
     case 2 : 
-   
 
-      HN = HN_NP2D2NS;
+      rhsN_F = &evolution::rhs_Nnp2d2_FNS;
 
-      H1PN = H1PN_NP2D2NS;
-
-      H2PN = H2PN_NP2D2NS;
-
-      Eesc = Eesc_NP2D2NS;
-
-
-      rhsN_F = &tbh_pn::rhs_Nnp2d2_FNS;
-
-      if(JacA)
-	jacN_F = &tbh_pn::jac_Nnp2d2_FaNS;
+      if(vm["evolution.JacA"].as<bool>())
+	jacN_F = &evolution::jac_Nnp2d2_FaNS;
   
 
 #ifdef odePN1
-      if(pn1){
-	rhs1PN_F = &tbh_pn::rhs_1PNnp2d2_FNS;
+      if(vm["terms.pn1"].as<bool>()){
+	rhs1PN_F = &evolution::rhs_1PNnp2d2_FNS;
 	if(JacA)
-	  jac1PN_F = &tbh_pn::jac_1PNnp2d2_FaNS;
+	  jac1PN_F = &evolution::jac_1PNnp2d2_FaNS;
       }
 #endif
     
 #ifdef odePN2
-      if(pn2)
-	rhs2PN_F = &tbh_pn::rhs_2PNnp2d2_FNS;
+      if(vm["terms.pn2"].as<bool>())
+	rhs2PN_F = &evolution::rhs_2PNnp2d2_FNS;
 #endif
 	  
 
 #ifdef odePN2_5
-      if(pn2_5)
-	rhs2_5PN_F = &tbh_pn::rhs_2_5PNnp2d2_FNS;
+      if(vm["terms.pn2_5"].as<bool>())
+	rhs2_5PN_F = &evolution::rhs_2_5PNnp2d2_FNS;
 #endif
 	  
 
@@ -276,81 +266,64 @@ void evolution::set_rhs(po::variables_map &vm)
 
     case 3 : 
 
+      rhsN_F = &evolution::rhs_Nnp2d3_FS;
 
-      HN = HN_NP2D3S;
-
-      H1PN = H1PN_NP2D3S;
-
-      H2PN = H2PN_NP2D3S;
-
-      HLOSO = HLOSO_NP2D3;
-
-      HLOSS = HLOSS_NP2D3;
-
-      HLOS2 = HLOS2_NP2D3;
-
-      HNLOSO = HNLOSO_NP2D3;
-
-      HNLOSS = HNLOSS_NP2D3;
-
-      Eesc = Eesc_NP2D3S;
-
-
-      rhsN_F = &tbh_pn::rhs_Nnp2d3_FS;
-
-      if(JacA)
-	jacN_F = &tbh_pn::jac_Nnp2d3_FaS;
+      if(vm["evolution.JacA"].as<bool>())
+	jacN_F = &evolution::jac_Nnp2d3_FaS;
 
 #ifdef odePN1
-      if(pn1){
-	rhs1PN_F = &tbh_pn::rhs_1PNnp2d3_FS;
+      if(vm["terms.pn1"].as<bool>()){
+	rhs1PN_F = &evolution::rhs_1PNnp2d3_FS;
 	if(JacA)
-	  jac1PN_F = &tbh_pn::jac_1PNnp2d3_FaS;
+	  jac1PN_F = &evolution::jac_1PNnp2d3_FaS;
       }
 #endif
     
       
 #ifdef odePN2
-      if(pn2)
-	rhs2PN_F = &tbh_pn::rhs_2PNnp2d3_FS;
+      if(vm["terms.pn2"].as<bool>())
+	rhs2PN_F = &evolution::rhs_2PNnp2d3_FS;
 #endif
 
 #ifdef odePN2_5
-      if(pn2_5)
-	rhs2_5PN_F = &tbh_pn::rhs_2_5PNnp2d3_FS;
+      if(vm["terms.pn2_5"].as<bool>())
+	rhs2_5PN_F = &evolution::rhs_2_5PNnp2d3_FS;
 #endif
       
 #ifdef odePNSlo
-      if(pnSOlo){
-	rhsSOloPN_F = &tbh_pn::rhs_SOloPNnp2d3_FS;
+      if(vm["terms.pnSOlo"].as<bool>()){
+	rhsSOloPN_F = &evolution::rhs_SOloPNnp2d3_FS;
 	if(JacA)
-	  jacSOloPN_F = &tbh_pn::jac_SOloPNnp2d3_FaS;
+	  jacSOloPN_F = &evolution::jac_SOloPNnp2d3_FaS;
       }
 
-      if(pnSSlo){
-	rhsSSloPN_F = &tbh_pn::rhs_SSloPNnp2d3_FS;
+      if(vm["terms.pnSSlo"].as<bool>()){
+	rhsSSloPN_F = &evolution::rhs_SSloPNnp2d3_FS;
       	if(JacA)
-	  jacSSloPN_F = &tbh_pn::jac_SSloPNnp2d3_FaS;
+	  jacSSloPN_F = &evolution::jac_SSloPNnp2d3_FaS;
       }
-      if(pnS2lo){
-	rhsS2loPN_F = &tbh_pn::rhs_S2loPNnp2d3_FS;
+      if(vm["terms.pnS2lo"].as<bool>()){
+	rhsS2loPN_F = &evolution::rhs_S2loPNnp2d3_FS;
 	if(JacA)
-	  jacS2loPN_F = &tbh_pn::jac_S2loPNnp2d3_FaS;
+	  jacS2loPN_F = &evolution::jac_S2loPNnp2d3_FaS;
       }
 #endif
 
       
 #ifdef odePNSnlo
-      if(pnSOnlo)
-	rhsSOnloPN_F = &tbh_pn::rhs_SOnloPNnp2d3_FS;
+      if(vm["terms.pnSOnlo"].as<bool>())
+	rhsSOnloPN_F = &evolution::rhs_SOnloPNnp2d3_FS;
 #endif
     
 
       break;
       
     default : 
-      
-      error_exit("The number of dimension must be 2 or 3.");
+      {
+	BOOST_LOG_SEV(lg, error) << "Number of dimensions must be 2 or 3: "<< space_dimension ;
+
+	exit(Finalize(0));
+      }
       
     }
 
@@ -359,171 +332,140 @@ void evolution::set_rhs(po::variables_map &vm)
   case 3 : 
 
 
-    switch ( space_dim ) {
+    switch ( space_dimension ) {
 
     case 2 : 
         
 
-      HN = HN_NP3D2NS;
-
-      H1PN = H1PN_NP3D2NS;
-
-      H2PN = H2PN_NP3D2NS;
-
-      Eesc = Eesc_NP3D2NS;
-
-
-      rhsN_F = &tbh_pn::rhs_Nnp3d2_FNS;
-
-      if(JacA)
-	jacN_F = &tbh_pn::jac_Nnp3d2_FaNS;
+      if(vm["evolution.JacA"].as<bool>())
+	jacN_F = &evolution::jac_Nnp3d2_FaNS;
   
 #ifdef odePN1
-      if(pn1){
-	rhs1PN_F = &tbh_pn::rhs_1PNnp3d2_FNS;
-	if(JacA)
-	  jac1PN_F = &tbh_pn::jac_1PNnp3d2_FaNS;
+      if(vm["terms.pn1"].as<bool>()){
+	rhs1PN_F = &evolution::rhs_1PNnp3d2_FNS;
+	if(vm["terms.JacA"].as<bool>())
+	  jac1PN_F = &evolution::jac_1PNnp3d2_FaNS;
       } 
 #endif
 
 #ifdef odePN2
-      if(pn2)
-	rhs2PN_F = &tbh_pn::rhs_2PNnp3d2_FNS;
+      if(vm["terms.pn2"].as<bool>())
+	rhs2PN_F = &evolution::rhs_2PNnp3d2_FNS;
 #endif
 	  
 #ifdef odePN2_5
-      if(pn2_5)
-	rhs2_5PN_F = &tbh_pn::rhs_2_5PNnp3d2_FNS;
+      if(vm["terms.pn2_5"].as<bool>())
+	rhs2_5PN_F = &evolution::rhs_2_5PNnp3d2_FNS;
 #endif
 	  
-
     
       break;
 
     case 3 : 
     
 
-      if(pnSOlo||pnSSlo||pnS2lo||pnSOnlo||pnSSnlo) {
+      if(vm["terms.pnSOlo"].as<bool>() ||
+	 vm["terms.pnSSlo"].as<bool>() ||
+	 vm["terms.pnS2lo"].as<bool>() ||
+	 vm["terms.pnSOnlo"].as<bool>()||
+	 vm["terms.pnSSnlo"].as<bool>()) {
 
-	HN = HN_NP3D3S;
 
-	H1PN = H1PN_NP3D3S;
-
-	H2PN = H2PN_NP3D3S;
+	rhsN_F = &evolution::rhs_Nnp3d3_FS;
 	
-	//HLOSO = HLOSO_NP3D3;
-
-	//HLOSS = HLOSS_NP3D3;
-
-	//HLOS2 = HLOS2_NP3D3;
-
-	//HNLOSO = HNLOSO_NP3D3;
-
-	//HNLOSS = HNLOSS_NP3D3;
-
-	Eesc = Eesc_NP3D3S;
-
-	rhsN_F = &tbh_pn::rhs_Nnp3d3_FS;
-	
-	if(JacA)
-	  jacN_F = &tbh_pn::jac_Nnp3d3_FaS;
+	if(vm["terms.JacA"].as<bool>())
+	  jacN_F = &evolution::jac_Nnp3d3_FaS;
 
 #ifdef odePN2
-	if(pn1){
-	  rhs1PN_F = &tbh_pn::rhs_1PNnp3d3_FS;
-	  if(JacA)
-	    jac1PN_F = &tbh_pn::jac_1PNnp3d3_FaS;
+	if(vm["terms.pn1"].as<bool>()){
+	  rhs1PN_F = &evolution::rhs_1PNnp3d3_FS;
+	  if(vm["evolution.JacA"].as<bool>())
+	    jac1PN_F = &evolution::jac_1PNnp3d3_FaS;
 	}
 #endif
     
       
 #ifdef odePN2
-	if(pn2)
-	  rhs2PN_F = &tbh_pn::rhs_2PNnp3d3_FS;
+	if(vm["terms.pn2"].as<bool>())
+	  rhs2PN_F = &evolution::rhs_2PNnp3d3_FS;
 #endif
 	
 #ifdef odePN2_5
 	/*
 
-	  if(pn2_5)
-	  rhs2_5PN_F = &tbh_pn::rhs_2_5PNnp3d3_F;
+	  if(vm["terms.pn2_5"].as<bool>())
+	  rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_F;
 	*/
 #endif
 	
       }
       else {
 	
-	HN = HN_NP3D3NS;
 
-	H1PN = H1PN_NP3D3NS;
-
-	H2PN = H2PN_NP3D3NS;
+	rhsN_F = &evolution::rhs_Nnp3d3_FNS;
 	
-	Eesc = Eesc_NP3D3NS;
-
-
-	rhsN_F = &tbh_pn::rhs_Nnp3d3_FNS;
-	
-	if(JacA)
-	  jacN_F = &tbh_pn::jac_Nnp3d3_FaNS;
+	if(vm["terms.JacA"].as<bool>())
+	  jacN_F = &evolution::jac_Nnp3d3_FaNS;
 
 #ifdef odePN1
-	if(pn1){
-	  rhs1PN_F = &tbh_pn::rhs_1PNnp3d3_FNS;
+	if(vm["terms.pn1"].as<bool>()){
+	  rhs1PN_F = &evolution::rhs_1PNnp3d3_FNS;
 	  
-	  if(JacA)
-	    jac1PN_F = &tbh_pn::jac_1PNnp3d3_FaNS;
+	  if(vm["terms.JacA"].as<bool>())
+	    jac1PN_F = &evolution::jac_1PNnp3d3_FaNS;
 	  
 	}
 #endif
 
 	
 #ifdef odePN2
-	if(pn2)
-	  rhs2PN_F = &tbh_pn::rhs_2PNnp3d3_FNS;
+	if(vm["terms.pn2"].as<bool>())
+	  rhs2PN_F = &evolution::rhs_2PNnp3d3_FNS;
 #endif
 	
 #ifdef odePN2_5
-	if(pn2_5)
-	  rhs2_5PN_F = &tbh_pn::rhs_2_5PNnp3d3_FNS;
+	if(vm["terms.pn2_5"].as<bool>())
+	  rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_FNS;
 #endif
 
 	
 #ifdef odePNSlo      
-	      if(pnSOlo){
+	if(vm["terms.pnSOlo"].as<bool>()){
 
-	      rhsSOloPN_F = &tbh_pn::rhs_SOloPNnp3d3_FS;
-	      if(JacA)
-	      jacSOloPN_F = &tbh_pn::jac_SOloPNnp3d3_FaS;
-	      }
+	  rhsSOloPN_F = &evolution::rhs_SOloPNnp3d3_FS;
+	  if(vm["evolution.JacA"].as<bool>())
+	    jacSOloPN_F = &evolution::jac_SOloPNnp3d3_FaS;
+	}
 
-	      if(pnSSlo){
-	      rhsSSloPN_F = &tbh_pn::rhs_SSloPNnp3d3_FS;
-	      if(JacA)
-	      jacSSloPN_F = &tbh_pn::jac_SSloPNnp3d3_FaS;
-	      }
-	      if(pnS2lo){
-	      rhsS2loPN_F = &tbh_pn::rhs_S2loPNnp3d3_FS;
-	      if(JacA)
-	      jacS2loPN_F = &tbh_pn::jac_S2loPNnp3d3_FaS;
-	      }
+	if(vm["terms.pnSSlo"].as<bool>()){
+	  rhsSSloPN_F = &evolution::rhs_SSloPNnp3d3_FS;
+	  if(vm["evolution.JacA"].as<bool>())
+	    jacSSloPN_F = &evolution::jac_SSloPNnp3d3_FaS;
+	}
+	if(vm["terms.pnS2lo"].as<bool>()){
+	  rhsS2loPN_F = &evolution::rhs_S2loPNnp3d3_FS;
+	  if(vm["evolution.JacA"].as<bool>())
+	    jacS2loPN_F = &evolution::jac_S2loPNnp3d3_FaS;
+	}
 #endif
 	     
 
 #ifdef odePNSnlo
-	      /*
-	      if(pnSOnlo)
-	      rhsSOnloPN_F = &tbh_pn::rhs_SOnloPNnp3d3_FS;
-      */
+	/*
+	  if(vm["terms.pnSOnlo)
+	  rhsSOnloPN_F = &evolution::rhs_SOnloPNnp3d3_FS;
+	*/
 #endif
 
 
-      break;
+	break;
     
-    default : 
-    
-      error_exit("The number of dimension must be 2 or 3.");
+	default : 
+	  {    
+	    BOOST_LOG_SEV(lg, error) << "Number of dimensions must be 2 or 3: "<< space_dimension ;
 
+	    exit(Finalize(0));
+	  }
       }
 
     }
@@ -531,12 +473,15 @@ void evolution::set_rhs(po::variables_map &vm)
     break;
     
   default : 
-    
-    error_exit("The number of particles must be 2 or 3.");
-
+    {
+      BOOST_LOG_SEV(lg, error) << "evolution.particles  should be  2 or 3.";
+      BOOST_LOG_SEV(lg, error) << "Current value : "<< number_of_particles;
+      exit(Finalize(0));
+      
+    }
   }
-
-  if(vm["evolution.chaos_test"])
+  
+  if(vm["evolution.chaos_test"].as<bool>())
     
     system.function = rhsC;
 
@@ -556,7 +501,7 @@ void evolution::set_rhs(po::variables_map &vm)
 
 
 
-void evolution::Init(valarray<double> _y, valarray<double> _dy, valarray<double> _par){
+void evolution::init(valarray<double> _y, valarray<double> _dy, valarray<double> _par){
 
   if( _y.size() != ode_size || _dy.size() != ode_size || _par.size() != number_of_particles )
     {
@@ -603,7 +548,7 @@ bool evolution::update(double &t)
 
 
 
-void close()
+void evolution::close()
 {
 
   gsl_odeiv_evolve_free (evolve);
@@ -620,8 +565,1083 @@ int evolution::rhs(double t, const double * y, double * f, void * param)
 
 
   // call member
-  mySelf->RHSN(time,y,f,param);
+  mySelf->RHSN(t,y,f,param);
+
+  mySelf->RHS1PN(t,y,f,param);
+
+  mySelf->RHS2PN(t,y,f,param);
+
+  mySelf->RHS2_5PN(t,y,f,param);
+
+  mySelf->RHSSOloPN(t,y,f,param);
+
+  mySelf->RHSSSloPN(t,y,f,param);
+
+  mySelf->RHSS2loPN(t,y,f,param);
+
+  mySelf->RHSSOnloPN(t,y,f,param);
 
   return (GSL_SUCCESS);
+
+}
+
+
+
+int evolution::jac(double t, const double y[], double * dfdy, double dfdt[], void * param)
+{
+  
+  evolution* mySelf = (evolution*) pt2evolution;
+
+
+  // call member
+  mySelf->JACN(t,y,dfdy,dfdt,param);
+  
+  mySelf->JAC1PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JAC2PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JAC2_5PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSOloPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSSloPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACS2loPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSOnloPN(t,y,dfdy,dfdt,param);
+  
+  return (GSL_SUCCESS);
+}
+
+
+
+int evolution::rhsC(double t, const double * y, double * f, void * param)
+{
+
+  
+  evolution* mySelf = (evolution*) pt2evolution;
+
+  // call member
+  mySelf->RHSN(t,y,f,param);
+
+  mySelf->RHS1PN(t,y,f,param);
+
+  mySelf->RHS2PN(t,y,f,param);
+
+  mySelf->RHS2_5PN(t,y,f,param);
+
+  mySelf->RHSSOloPN(t,y,f,param);
+
+  mySelf->RHSSSloPN(t,y,f,param);
+
+  mySelf->RHSS2loPN(t,y,f,param);
+
+  mySelf->RHSSOnloPN(t,y,f,param);
+
+  double dfdy[mySelf->number_of_variables*mySelf->number_of_variables];
+
+  double dfdt[mySelf->number_of_variables];
+
+  mySelf->JACN(t,y,dfdy,dfdt,param);
+
+  mySelf->JAC1PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JAC2PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JAC2_5PN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSOloPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSSloPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACS2loPN(t,y,dfdy,dfdt,param);
+
+  mySelf->JACSOnloPN(t,y,dfdy,dfdt,param);
+  
+  for(int i=0; i < mySelf->number_of_variables; i++) 
+    {
+
+      f[mySelf->number_of_variables+i] = 0.0;
+      
+      for(int j=0; j < mySelf->number_of_variables; j++) 
+	
+	f[mySelf->number_of_variables+i] += dfdy[i*mySelf->number_of_variables+j]*y[mySelf->number_of_variables+j];
+
+    }
+
+  return (GSL_SUCCESS);
+
+}
+
+
+int evolution::rhsN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+
+
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] = (this->*rhsN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+
+int evolution::rhs1PN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhs1PN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::rhs2PN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhs2PN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+
+int evolution::rhs2_5PN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhs2_5PN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::rhsSOloPN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhsSOloPN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::rhsSSloPN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhsSSloPN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::rhsS2loPN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhsS2loPN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::rhsSOnloPN (double t, const double y[], double f[], void *param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+
+    f[i] += (this->*rhsSOnloPN_F)(t,y,par,i);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::jacN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  for(int i=0; i < number_of_variables; i++)
+    {
+      
+      dfdt[i] = 0;
+
+      for(int j=0; j < number_of_variables; j++)
+      
+	dfdy[i*number_of_variables+j] = (this->*jacN_F)(t,y,par,i,j);
+
+
+
+    }
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::jac1PN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jac1PN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::jac2PN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+      
+      dfdy[i*number_of_variables+j] += (this->*jac2PN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::jac2_5PN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jac2_5PN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::jacSOloPN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jacSOloPN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+int evolution::jacSSloPN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jacSSloPN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::jacS2loPN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jacS2loPN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+int evolution::jacSOnloPN (double t, const double y[], double * dfdy, double dfdt[], void * param){
+
+
+  double *par = static_cast<double *>(param);
+  
+  
+  for(int i=0; i < number_of_variables; i++)
+    
+    for(int j=0; j < number_of_variables; j++)
+
+      dfdy[i*number_of_variables+j] += (this->*jacSOnloPN_F)(t,y,par,i,j);
+
+
+  return (GSL_SUCCESS); }
+
+
+
+double evolution::jac_numN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhsN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhsN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhsN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhsN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhsN_F)(t,yp1,par,i);
+    fm1 = (this->*rhsN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhsN_F)(t,yp2,par,i);
+    fm2 = (this->*rhsN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+
+double evolution::jac_num1PN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhs1PN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhs1PN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhs1PN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhs1PN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhs1PN_F)(t,yp1,par,i);
+    fm1 = (this->*rhs1PN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhs1PN_F)(t,yp2,par,i);
+    fm2 = (this->*rhs1PN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+double evolution::jac_num2PN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhs2PN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhs2PN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhs2PN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhs2PN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhs2PN_F)(t,yp1,par,i);
+    fm1 = (this->*rhs2PN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhs2PN_F)(t,yp2,par,i);
+    fm2 = (this->*rhs2PN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+double evolution::jac_num2_5PN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhs2_5PN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhs2_5PN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhs2_5PN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhs2_5PN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhs2_5PN_F)(t,yp1,par,i);
+    fm1 = (this->*rhs2_5PN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhs2_5PN_F)(t,yp2,par,i);
+    fm2 = (this->*rhs2_5PN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+double evolution::jac_numSOloPN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhsSOloPN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhsSOloPN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhsSOloPN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhsSOloPN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhsSOloPN_F)(t,yp1,par,i);
+    fm1 = (this->*rhsSOloPN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhsSOloPN_F)(t,yp2,par,i);
+    fm2 = (this->*rhsSOloPN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+
+
+double evolution::jac_numSSloPN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhsSSloPN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhsSSloPN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhsSSloPN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhsSSloPN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhsSSloPN_F)(t,yp1,par,i);
+    fm1 = (this->*rhsSSloPN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhsSSloPN_F)(t,yp2,par,i);
+    fm2 = (this->*rhsSSloPN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+double evolution::jac_numS2loPN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhsS2loPN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhsS2loPN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhsS2loPN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhsS2loPN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhsS2loPN_F)(t,yp1,par,i);
+    fm1 = (this->*rhsS2loPN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhsS2loPN_F)(t,yp2,par,i);
+    fm2 = (this->*rhsS2loPN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
+
+}
+
+
+
+
+
+double evolution::jac_numSOnloPN_F(double t, const double y[], double par[], int i, int j)
+{
+
+
+  double yp1[number_of_variables], yp2[number_of_variables];  
+
+  double ym1[number_of_variables], ym2[number_of_variables];  
+
+  double r0, round, trunc;
+
+  double error;
+
+  double Linf = 0;
+
+
+  for(int jj=0; jj<j; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+  
+  yp1[j] = y[j]+0.5*dx;
+  ym1[j] = y[j]-0.5*dx;
+  yp2[j] = y[j]+dx;
+  ym2[j] = y[j]-dx;
+
+  for(int jj=j+1; jj<number_of_variables; jj++)
+    {    
+      yp1[jj] = y[jj];
+      ym1[jj] = y[jj];
+      yp2[jj] = y[jj];
+      ym2[jj] = y[jj];
+    }
+
+  double fp1 = (this->*rhsSOnloPN_F)(t,yp1,par,i);
+  double fm1 = (this->*rhsSOnloPN_F)(t,ym1,par,i);  
+  double fp2 = (this->*rhsSOnloPN_F)(t,yp2,par,i);
+  double fm2 = (this->*rhsSOnloPN_F)(t,ym2,par,i);  
+
+
+  central_deriv (fm2, fp2,
+		 fm1, fp1, 
+		 y[j], dx, 
+		 &r0, &round, &trunc);
+
+  error = round+trunc;
+
+  if (round < trunc && (round > 0 && trunc > 0)){
+
+    double r_opt, round_opt, trunc_opt, error_opt;
+	
+    double h_opt = dx * pow (round / (2.0 * trunc), 1.0 / 3.0);
+
+    yp1[j] = y[j]+0.5*h_opt;
+    ym1[j] = y[j]-0.5*h_opt;
+    yp2[j] = y[j]+h_opt;
+    ym2[j] = y[j]-h_opt;
+
+    fp1 = (this->*rhsSOnloPN_F)(t,yp1,par,i);
+    fm1 = (this->*rhsSOnloPN_F)(t,ym1,par,i);  
+    fp2 = (this->*rhsSOnloPN_F)(t,yp2,par,i);
+    fm2 = (this->*rhsSOnloPN_F)(t,ym2,par,i);  
+    
+    central_deriv (fm2, fp2,
+		   fm1, fp1, 
+		   y[j], h_opt, 
+		   &r_opt, &round_opt, &trunc_opt);
+  
+    error_opt = round_opt + trunc_opt;
+
+    if (error_opt < error && fabs (r_opt - r0) < 4.0 * error)
+      {
+	r0 = r_opt;
+	error = error_opt;
+      }
+
+  }
+
+  
+
+  return(r0);
 
 }
