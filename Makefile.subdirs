@@ -43,8 +43,6 @@ DELLIBS := $(addprefix $(OBJDIR)/,$(DELLIBS))
 $(LIBDIR)/$(NEWLIB): $(OBJSWITHPATH)
 	@echo "-----------------------------------------------------------------------------------"
 	@echo "library " $(NEWLIB) 
-	#ar -d $@ $(DELLIBS) 
-	@echo ar -d $@ $(DELLIBS)
 	@ar -rucs $@ $(OBJSWITHPATH) 
 	@echo "-----------------------------------------------------------------------------------"
 #$(HSFWITHPATH)
@@ -52,4 +50,4 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cc
 	@echo ''
 	@echo '===> Building obj' $*.o 
 	@echo ''
-	$(COMP) $(CPPFLAGS) -o $@ -c -I/usr/local/include $(HEADERDIR) $(VTK_INC) $(SRCDIR)/$*.cc
+	@$(COMP) $(CPPFLAGS) -o $@ -c -I/usr/local/include $(HEADERDIR) $(VTK_INC) $(SRCDIR)/$*.cc

@@ -83,7 +83,7 @@ void output::init()
 }
 
 
-void output::update(double t, bool force)
+void output::update(double t, int index, bool force)
 {
 
   iteration++;

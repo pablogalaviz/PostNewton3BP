@@ -307,7 +307,7 @@ class evolution
 
  bool update(double &t);
  
- void init(valarray<double> _y, valarray<double> _par);
+ void init(const valarray<double> &_y,const valarray<double> &_par);
 
  void close();
  

@@ -65,7 +65,7 @@ evolution::evolution(po::variables_map &vm){
   final_time = vm["evolution.final_time"].as<double>();
   dx = vm["evolution.jacobian_dx"].as<double>();
 
-  number_of_particles  = vm["evolution.particles"].as<size_t>();
+  number_of_particles  = vm["initial_data.particles"].as<size_t>();
 
   
   if (number_of_particles < 2 || number_of_particles > 3)
@@ -153,6 +153,7 @@ evolution::evolution(po::variables_map &vm){
   evolve = gsl_odeiv_evolve_alloc (ode_size);
 
 
+  
   if(verbose)
     {
       BOOST_LOG_SEV(lg, info)  << "Evolution info:";
@@ -530,9 +531,9 @@ switch ( number_of_particles ) {
 
 
 
-void evolution::init(valarray<double>  &_y, valarray<double>  &_par){
+void evolution::init(const valarray<double>  &_y,const valarray<double>  &_par){
 
-  if( _y.size() != ode_size || _dy.size() != ode_size || _par.size() != number_of_particles )
+  if( _y.size() != ode_size  || _par.size() != number_of_particles )
     {
 
       BOOST_LOG_SEV(lg, error) << "Wrong initialization! On variables size";
@@ -542,12 +543,10 @@ void evolution::init(valarray<double>  &_y, valarray<double>  &_par){
     }
 
   for(int i =0; i < ode_size; i++)
-    {
       y[i]=_y[i];
-      dy[i] = _dy[i];
-    }
-  
 
+  for(int i =0; i < number_of_particles; i++)
+      par[i]=_par[i];
   
 }
 

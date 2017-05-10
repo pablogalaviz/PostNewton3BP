@@ -70,7 +70,7 @@ class output
  
   void init();
   
-  void update(double t, bool force=false);
+  void update(double t, int index,  bool force=false);
 
  
 

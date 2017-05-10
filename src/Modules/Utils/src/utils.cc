@@ -83,7 +83,6 @@ void setupLog(string dir_name, bool silent, bool debug){
 
   string log_file = "/output"+to_string(mpi_rank)+".log";
 
-
   logging::add_file_log
     (
      keywords::file_name = dir_name+log_file,                                        /*< file name pattern >*/
@@ -188,3 +187,18 @@ void central_deriv (double fm1, double fp1,
 
 
 
+double get_id_value(vector<double> &v, int i, double def)
+{
+  if(v.size()==0)
+     return def;
+  if(i >=v.size())
+    return v[v.size()-1];
+
+  return v[i];
+
+}
+
+
+size_t r_index(size_t a, size_t i, size_t space_dim) {return (i+2*a*space_dim);}
+size_t p_index(size_t a, size_t i, size_t space_dim) {return (i+(2*a+1)*space_dim);}
+size_t s_index(size_t a, size_t i, size_t space_dim) {return (i+(2*a+2)*space_dim);}

@@ -31,9 +31,37 @@
 #define INITIAL_DATA_H
 
 #include<utils.h>
-#include<evolution.h>
 
-void set_initial_data(evolution *evo,po::variables_map &vm);
+
+class initialData
+{
+
+  src::severity_logger< severity_level > lg;
+
+  size_t simulation_size; 
+  size_t number_of_particles; 
+  
+  vector<valarray<double>> y; 
+  vector<valarray<double>> par; 
+
+  void load_file(string filename);
+
+  bool verbose; 
+  
+ public:
+
+ initialData(po::variables_map &vm);
+
+ ~initialData(){};
+
+
+ inline int sim_size(){ return simulation_size;}
+
+ inline valarray<double> get_y(int i){return y[i]; }
+ 
+ inline valarray<double> get_par(int i){return par[i]; }
+
+};
 
 
 #endif

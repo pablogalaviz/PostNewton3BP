@@ -64,7 +64,6 @@ int main(int ac, char*av[])
      ("evolution.plane_constrain", po::value<bool>()->default_value(false),"Constrain evolution to a plane")
      ("evolution.chaos_test", po::value<bool>()->default_value(false),"Calculate  Lyapunov chaos indicator")
      ("evolution.JacA", po::value<bool>()->default_value(false),"Uses analytic Jacobian (in chaos test)")
-     ("evolution.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
      ("evolution.initial_dt", po::value<double>()->default_value(1e-6),"Initial time-step")
      ("evolution.jacobian_dx", po::value<double>()->default_value(1e-6),"Numeric Jacobian initial dx ")
      ("evolution.factor_chaos_test", po::value<double>()->default_value(100),"Scaling factor for chaos test")
@@ -96,24 +95,57 @@ int main(int ac, char*av[])
 #endif
 #ifdef odePNSlo
       ("terms.pnSOlo", po::value<bool>()->default_value(false),"Activate spin-orbit post-Newtonian terms of leading order  ")
-      ("terms.pnSSlo", po::value<bool>()->default_value(false),"Activate spin-spin post-Newtonian terms of leading order  ")
-      ("terms.pnS2lo", po::value<bool>()->default_value(false),"Activate self-spin post-Newtonian terms of leading order  ")
+      ("terms.pnSSlo", po::value<bool>()->default_value(false),"Activate spin(a)-spin(b) post-Newtonian terms of leading order  ")
+      ("terms.pnS2lo", po::value<bool>()->default_value(false),"Activate spin(a)-spin(a) post-Newtonian terms of leading order  ")
 #endif
 #ifdef odePNSnlo      
       ("terms.pnSOnlo", po::value<bool>()->default_value(false),"Activate spin-orbit post-Newtonian terms of next-to leading order  ")
-      ("terms.pnSSnlo", po::value<bool>()->default_value(false),"Activate spin-spin post-Newtonian terms of next-to leading order  ")
+      ("terms.pnSSnlo", po::value<bool>()->default_value(false),"Activate spin(a)-spin(b) post-Newtonian terms of next-to leading order  ")
 #endif
-      ;
+      ("terms.verbose", po::value<bool>(&output_verbose)->default_value(false),"output additional information");
+
+
+    po::options_description idOptions("Initial data options");
+
+    idOptions.add_options()
+      ("initial_data.type", po::value<string>()->default_value(""),"Type of initial data [read_file,binary_single,] ")
+      ("initial_data.verbose", po::value<bool>(&output_verbose)->default_value(false),"output additional information")
+      ("initial_data.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
+      ("initial_data.file", po::value<string>()->default_value(""),"Data file with position, momentum and spin for each body and each simulation")
+      ("initial_data.m1", po::value< vector<double> >()->default_value( vector<double>(), "1" ),"Mass of body 1 ")
+      ("initial_data.m2", po::value< vector<double> >()->default_value( vector<double>(), "1" ),"Mass of body 2 ")
+      ("initial_data.m3", po::value< vector<double> >()->default_value( vector<double>(), "1" ),"Mass of body 3 ")
+      ("initial_data.separation_inner_binary", po::value< vector<double> >()->default_value( vector<double>(), "130" ),"Initial separation of the inner binary")
+      ("initial_data.separation_outer_binary", po::value< vector<double> >()->default_value( vector<double>(), "400" ),"Initial separation of the outer binary")
+      ("initial_data.theta_inner_binary", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Theta angle of the inner radio vector")
+      ("initial_data.phi_inner_binary", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Phi angle of the inner radio vector")
+      ("initial_data.theta_outer_binary", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Theta angle of the outer radio vector")
+      ("initial_data.phi_outer_binary", po::value< vector<double> >()->default_value( vector<double>(), "1.5707963268" ),"Phi angle of the outer radio vector")
+      ("initial_data.excentricity_inner_binary", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Newtonian eccentricity of the inner binary ")
+      ("initial_data.excentricity_outer_binary", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Newtonian eccentricity of the outer binary ")
+      ("initial_data.spin_1", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin magnitude of body 1")
+      ("initial_data.spin_2", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin magnitude of body 2")
+      ("initial_data.spin_3", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin magnitude of body 3")
+      ("initial_data.theta_spin_1", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin theta angle of body 1")
+      ("initial_data.phi_spin_1", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin phi angle of body 1")
+      ("initial_data.theta_spin_2", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin theta angle of body 2")
+      ("initial_data.phi_spin_2", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin phi angle of body 2")
+      ("initial_data.theta_spin_3", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin theta angle of body 3")
+      ("initial_data.phi_spin_3", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin phi angle of body 3")
+      ("initial_data.epsilon", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"epsilon");
+
+
+    
     
     po::positional_options_description p;
     p.add("input_file", -1);
 
     
     po::options_description cmdline_options;
-    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions).add(termsOptions);
+    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions);
 
     po::options_description config_file_options;
-    config_file_options.add(evolutionOptions).add(outputOptions).add(termsOptions);
+    config_file_options.add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions);
 
 
     po::variables_map vm;
@@ -179,29 +211,36 @@ int main(int ac, char*av[])
     using namespace logging::trivial;
     src::severity_logger< severity_level > lg;
 
+    initialData id(vm);
+
+    int n =  id.sim_size();
+
     
-    evolution evol(vm);
- 
-    output my_output(output_directory,output_verbose, debug, delta_time);
+    for(int i=0; i < n; i++)
+      {
+	evolution evol(vm);
 
-    set_initial_data(&evol,vm);
+	exit(0);
+	
+	evol.init(id.get_y(i),id.get_par(i));
     
+	output my_output(output_directory,output_verbose, debug, delta_time);    
 
-    double t=0; 
-    bool proceed = true;
-
-    do{
+    
+	double t=0; 
+	bool proceed = true;
+	do{
       
-      proceed=evol.update(t);
+	  proceed=evol.update(t);
 
-      BOOST_LOG_SEV(lg, info) << setprecision(5) << "time: "<< t;
+	  BOOST_LOG_SEV(lg, info) << setprecision(5) << "time: "<< t;
 
-      my_output.update(t);
+	  my_output.update(t,i);
       
-    }while(proceed);
+	}while(proceed);
 
-    my_output.update(t,true);
-    
+	my_output.update(t,i,true);
+      }    
     
   }
   catch(exception& e) {

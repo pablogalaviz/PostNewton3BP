@@ -60,6 +60,10 @@
 #define Y 1
 #define Z 2
 
+#define P1 0
+#define P2 1
+#define P3 2
+
 namespace po = boost::program_options;
 namespace logging = boost::log;
 namespace src = boost::log::sources;
@@ -85,5 +89,37 @@ void central_deriv (double fm1, double fp1,
 		    double h, double *result, 
 		    double *abserr_round, double *abserr_trunc);
 
+double get_id_value(vector<double> &v, int i, double def=0);
+
+size_t r_index(size_t a, size_t i, size_t space_dim);
+size_t p_index(size_t a, size_t i, size_t space_dim);
+size_t s_index(size_t a, size_t i, size_t space_dim);
+
+template<class T> 
+string vector2str(vector<T> v) {
+
+  stringstream ss;
+  for(int i=0; i < v.size()-1; i++)
+    ss << v[i] << ", "; 
+  ss << v[v.size()-1];
+  
+  return ss.str();
+
+}
+
+
+template<class T> 
+string valarray2str(valarray<T> v) {
+
+  stringstream ss;
+  for(int i=0; i < v.size()-1; i++)
+    ss << v[i] << ", "; 
+  ss << v[v.size()-1];
+  
+  return ss.str();
+
+}
+
 
 #endif
+
