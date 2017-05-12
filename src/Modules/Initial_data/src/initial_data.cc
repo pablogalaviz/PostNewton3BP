@@ -41,9 +41,9 @@ initialData::initialData(po::variables_map &vm){
   
   if (id_type.compare("read-file") == 0 ){
 
-      string input_file = vm["initial_data.file"].as<string>();
+    string input_file = vm["initial_data.file"].as<string>();
       load_file(input_file); 
-    }
+  }
 
 
 }
@@ -179,15 +179,15 @@ void initialData::load_file(string filename){
 
       int num_var = dimension*number_of_particles*2;
 
-      bool spin=s1+s2+s3 > 0; 
+      spin=s1+s2+s3 > 0; 
       
       if(spin)
 	num_var+=dimension;
 
 
-      int num_of_sim = max(m1.size(),max(m2.size(),m3.size()));
+      simulation_size = max(m1.size(),max(m2.size(),m3.size()));
 
-      num_of_sim =max(num_of_sim,max(pos1,max(pos2,max(pos3,max(mom1,max(mom2,max(mom3,max(s1,max(s2,s3)))))))));
+      simulation_size =max(simulation_size,max(pos1,max(pos2,max(pos3,max(mom1,max(mom2,max(mom3,max(s1,max(s2,s3)))))))));
 
 
       stringstream ss; 
@@ -196,7 +196,7 @@ void initialData::load_file(string filename){
 	{
 	  BOOST_LOG_SEV(lg, info)  << "Initial data info:";
 	  BOOST_LOG_SEV(lg, info)  << "======================================";
-	  BOOST_LOG_SEV(lg, info)  << "Number of simulations: " << num_of_sim;
+	  BOOST_LOG_SEV(lg, info)  << "Number of simulations: " << simulation_size;
 	  BOOST_LOG_SEV(lg, info)  << "Dimensions: " << dimension;
 	  BOOST_LOG_SEV(lg, info)  << "Number of particles: " << number_of_particles;
 	  BOOST_LOG_SEV(lg, info)  << "Spin: " << spin;
@@ -210,17 +210,17 @@ void initialData::load_file(string filename){
 	  if(z1.size()>0)
 	    BOOST_LOG_SEV(lg, info)  << "Particle 1 position  z: " << vector2str<double>(z1);
 	  if(px1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  x: " << vector2str<double>(x1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  x: " << vector2str<double>(px1);
 	  if(py1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  y: " << vector2str<double>(y1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  y: " << vector2str<double>(py1);
 	  if(pz1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  z: " << vector2str<double>(z1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 momentum  z: " << vector2str<double>(pz1);
 	  if(sx1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  x: " << vector2str<double>(x1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  x: " << vector2str<double>(sx1);
 	  if(sy1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  y: " << vector2str<double>(y1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  y: " << vector2str<double>(sy1);
 	  if(sz1.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  z: " << vector2str<double>(z1);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 1 spin  z: " << vector2str<double>(sz1);
 	  if(m2.size()>0)
 	    BOOST_LOG_SEV(lg, info)  << "Particle 2 mass: " << vector2str<double>(m2);
 	  if(x2.size()>0)
@@ -230,17 +230,17 @@ void initialData::load_file(string filename){
 	  if(z2.size()>0)
 	    BOOST_LOG_SEV(lg, info)  << "Particle 2 position  z: " << vector2str<double>(z2);
 	  if(px2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  x: " << vector2str<double>(x2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  x: " << vector2str<double>(px2);
 	  if(py2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  y: " << vector2str<double>(y2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  y: " << vector2str<double>(py2);
 	  if(pz2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  z: " << vector2str<double>(z2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 momentum  z: " << vector2str<double>(pz2);
 	  if(sx2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  x: " << vector2str<double>(x2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  x: " << vector2str<double>(sx2);
 	  if(sy2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  y: " << vector2str<double>(y2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  y: " << vector2str<double>(sy2);
 	  if(sz2.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  z: " << vector2str<double>(z2);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 2 spin  z: " << vector2str<double>(sz2);
 	  if(m3.size()>0)
 	    BOOST_LOG_SEV(lg, info)  << "Particle 2 mass: " << vector2str<double>(m3);
 	  if(x3.size()>0)
@@ -250,23 +250,23 @@ void initialData::load_file(string filename){
 	  if(z3.size()>0)
 	    BOOST_LOG_SEV(lg, info)  << "Particle 3 position  z: " << vector2str<double>(z3);
 	  if(px3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  x: " << vector2str<double>(x3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  x: " << vector2str<double>(px3);
 	  if(py3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  y: " << vector2str<double>(y3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  y: " << vector2str<double>(py3);
 	  if(pz3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  z: " << vector2str<double>(z3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 momentum  z: " << vector2str<double>(pz3);
 	  if(sx3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  x: " << vector2str<double>(x3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  x: " << vector2str<double>(sx3);
 	  if(sy3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  y: " << vector2str<double>(y3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  y: " << vector2str<double>(sy3);
 	  if(sz3.size()>0)
-	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  z: " << vector2str<double>(z3);
+	    BOOST_LOG_SEV(lg, info)  << "Particle 3 spin  z: " << vector2str<double>(sz3);
 	  
 	}
 
 
       
-      for(int i=0; i < num_of_sim; i++)
+      for(int i=0; i < simulation_size; i++)
 	{
 	  valarray<double> _y(num_var);
 	  valarray<double> _par(number_of_particles);

@@ -32,7 +32,8 @@
 
 #include<utils.h>
 #include<hdf5.h>
-
+#include<evolution.h>
+#include<initial_data.h> 
 
 class output
 {
@@ -58,7 +59,7 @@ class output
 
   double next_output;
 
-  void save(double t);
+  void save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin);
 
   
  public:
@@ -68,9 +69,9 @@ class output
  ~output(){};
 
  
-  void init();
+ void init(initialData &id, size_t index);
   
-  void update(double t, int index,  bool force=false);
+  void update(double t, int index,evolution &evo,  bool force=false);
 
  
 

@@ -37,6 +37,7 @@ int main(int ac, char*av[])
   string output_directory;
   
   double final_time;
+  bool evolution_verbose;
   bool output_verbose;
   bool debug;
   double delta_time;
@@ -59,7 +60,7 @@ int main(int ac, char*av[])
     po::options_description evolutionOptions("Evolution options");
 
    evolutionOptions.add_options()
-      ("evolution.verbose", po::value<bool>()->default_value(false),"Shows information about the evolution progress ")
+      ("evolution.verbose", po::value<bool>(&evolution_verbose)->default_value(false),"Shows information about the evolution progress ")
       ("evolution.ode_method", po::value<string>()->default_value("rk8pd"),"ODE method, one of:[rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2]")
      ("evolution.plane_constrain", po::value<bool>()->default_value(false),"Constrain evolution to a plane")
      ("evolution.chaos_test", po::value<bool>()->default_value(false),"Calculate  Lyapunov chaos indicator")
@@ -102,14 +103,14 @@ int main(int ac, char*av[])
       ("terms.pnSOnlo", po::value<bool>()->default_value(false),"Activate spin-orbit post-Newtonian terms of next-to leading order  ")
       ("terms.pnSSnlo", po::value<bool>()->default_value(false),"Activate spin(a)-spin(b) post-Newtonian terms of next-to leading order  ")
 #endif
-      ("terms.verbose", po::value<bool>(&output_verbose)->default_value(false),"output additional information");
+      ("terms.verbose", po::value<bool>()->default_value(false),"output additional information");
 
 
     po::options_description idOptions("Initial data options");
 
     idOptions.add_options()
       ("initial_data.type", po::value<string>()->default_value(""),"Type of initial data [read_file,binary_single,] ")
-      ("initial_data.verbose", po::value<bool>(&output_verbose)->default_value(false),"output additional information")
+      ("initial_data.verbose", po::value<bool>()->default_value(false),"output additional information")
       ("initial_data.particles", po::value<size_t>()->default_value(3),"Number of particles [2,3]")
       ("initial_data.file", po::value<string>()->default_value(""),"Data file with position, momentum and spin for each body and each simulation")
       ("initial_data.m1", po::value< vector<double> >()->default_value( vector<double>(), "1" ),"Mass of body 1 ")
@@ -220,26 +221,26 @@ int main(int ac, char*av[])
       {
 	evolution evol(vm);
 
-	exit(0);
-	
 	evol.init(id.get_y(i),id.get_par(i));
     
 	output my_output(output_directory,output_verbose, debug, delta_time);    
 
+	my_output.init(id,i);
     
 	double t=0; 
 	bool proceed = true;
 	do{
-      
+
+	  my_output.update(t,i,evol);
+
 	  proceed=evol.update(t);
-
-	  BOOST_LOG_SEV(lg, info) << setprecision(5) << "time: "<< t;
-
-	  my_output.update(t,i);
+	  if(evolution_verbose)
+	    BOOST_LOG_SEV(lg, info) << setprecision(5) << "time: "<< t;
+	  
       
 	}while(proceed);
 
-	my_output.update(t,i,true);
+	my_output.update(t,i,evol,true);
       }    
     
   }

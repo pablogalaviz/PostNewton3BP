@@ -1,11 +1,13 @@
 [output]
 directory=TB_Test
+verbose=yes
+delta_time=10
 
 [evolution]
 
 ode_method=rk4imp   # rk2,rk4,rkck,rk8pd,rk2imp,rk4imp,bsimp,gear1,gear2
 plane_constrain = yes
-chaos_test=yes
+chaos_test=no
 initial_dt=0.1
                      
 factor_chaos_test=100
@@ -17,11 +19,12 @@ epsilon_abs=1e-6
 
 final_time=1
 
+verbose = no
 [initial_data]
 
-particles=2
+particles=3
 type=read-file # read-file, binary-single 
-file=Henon.id
+file=../par/id_files/Henon.id
 
 m1 = 1
 m2 = 1
@@ -45,3 +48,6 @@ phi_spin_2=0
 theta_spin_3=0
 theta_spin_3=0
 epsilon=0.1
+
+
+verbose=yes

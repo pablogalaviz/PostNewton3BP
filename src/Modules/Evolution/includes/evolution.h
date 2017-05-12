@@ -39,6 +39,8 @@ class evolution
 
   bool verbose; 
 
+  bool spin; 
+  
   const gsl_odeiv_step_type * step_type;
 
   gsl_odeiv_step * step;
@@ -67,11 +69,11 @@ class evolution
  
   size_t number_of_particles; 
   
-  double *y;
+  valarray<double> y;
   
-  double *dy; 
+  valarray<double> dy; 
 
-  double *par;
+  valarray<double> par;
 
 
   static int rhs(double t, const double * y, double * f, void * param);
@@ -310,6 +312,16 @@ class evolution
  void init(const valarray<double> &_y,const valarray<double> &_par);
 
  void close();
+
+ valarray<double> get_position(){
+   return y; }
+
+  valarray<double> get_momentum(){
+   return y; }
+
+  valarray<double> get_spin(){
+   return y; }
+
  
 };
 

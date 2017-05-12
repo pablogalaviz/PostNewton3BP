@@ -95,7 +95,7 @@ evolution::evolution(po::variables_map &vm){
   pnSSnlo=vm["terms.pnSSnlo"].as<bool>();
 #endif
 
-  bool spin =  pnSOlo||pnSSlo||pnS2lo||pnSOnlo||pnSSnlo;
+  spin =  pnSOlo||pnSSlo||pnS2lo||pnSOnlo||pnSSnlo;
     
   if(number_of_particles==2 && ! plane_constrain  && !spin)
     plane_constrain=true;
@@ -169,11 +169,11 @@ evolution::evolution(po::variables_map &vm){
       BOOST_LOG_SEV(lg, info)  << "======================================";
     }
 
-  y = new double [ode_size];
+  y.resize(ode_size);
   
-  dy = new double [ode_size];
+  dy.resize(ode_size);
   
-  par = new double [number_of_particles];
+  par.resize(number_of_particles);
       
   set_rhs(vm);
 
@@ -194,8 +194,6 @@ void evolution::set_rhs(po::variables_map &vm)
   system.dimension = ode_size;
 
   system.params = &par[0];
-
-  jacN_F = &evolution::jac_numN_F;
 
 
   rhs1PN_F = &evolution::rhs_zero;
@@ -219,297 +217,254 @@ void evolution::set_rhs(po::variables_map &vm)
  
   rhsSOnloPN_F = &evolution::rhs_zero;
   jacSOnloPN_F = &evolution::jac_zero;
-  
 
+  bool jacA= vm["evolution.JacA"].as<bool>();
+  
+  
+  //Newtonian
+  jacN_F= &evolution::jac_numN_F;
+  
+  if(number_of_particles==2 && space_dimension == 2)
+    {
+      rhsN_F = &evolution::rhs_Nnp2d2_FNS;
+      if(jacA)
+	jacN_F =  &evolution::jac_Nnp2d2_FaNS;
+    }
+  else     
+    if(number_of_particles==2 && space_dimension ==3)
+      {
+	rhsN_F = &evolution::rhs_Nnp2d3_FS;
+	if(jacA)
+	  jacN_F =  &evolution::jac_Nnp2d3_FaS;
+      }
+    else     
+      if(number_of_particles==3 && space_dimension ==2)
+	{
+	  rhsN_F = &evolution::rhs_Nnp3d2_FNS;
+	  if(jacA)
+	    jacN_F =  &evolution::jac_Nnp3d2_FaNS;
+	}
+      else     
+	if(number_of_particles==3 && space_dimension ==3 && spin)
+	  {
+	    rhsN_F = &evolution::rhs_Nnp3d3_FS;
+	    if(jacA)
+	      jacN_F =  &evolution::jac_Nnp3d3_FaS;
+	  }
+	else  //	if(number_of_particles==3 && space_dimension ==3 )
+	  {
+	    rhsN_F = &evolution::rhs_Nnp3d3_FNS;
+	    if(jacA)
+	      jacN_F =  &evolution::jac_Nnp3d3_FaNS;
+	  }
+     
 #ifdef odePN1
   if(vm["terms.pn1"].as<bool>())
-    jac1PN_F = &evolution::jac_num1PN_F;
+    {
+      jac1PN_F = &evolution::jac_num1PN_F;
+
+      if(number_of_particles==2 && space_dimension == 2)
+	{
+	  rhs1PN_F = &evolution::rhs_1PNnp2d2_FNS;
+	  if(jacA)
+	    jac1PN_F =  &evolution::jac_1PNnp2d2_FaNS;
+	}
+      else     
+	if(number_of_particles==2 && space_dimension ==3)
+	  {
+	    rhs1PN_F = &evolution::rhs_1PNnp2d3_FS;
+	    if(jacA)
+	      jac1PN_F =  &evolution::jac_1PNnp2d3_FaS;
+	  }
+	else     
+	  if(number_of_particles==3 && space_dimension ==2)
+	    {
+	      rhs1PN_F = &evolution::rhs_1PNnp3d2_FNS;
+	      if(jacA)
+		jac1PN_F =  &evolution::jac_1PNnp3d2_FaNS;
+	    }
+	  else     
+	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	      {
+		rhs1PN_F = &evolution::rhs_1PNnp3d3_FS;
+		if(jacA)
+		  jac1PN_F =  &evolution::jac_1PNnp3d3_FaS;
+	  }
+	else  //	if(number_of_particles==3 && space_dimension ==3 )
+	  {
+	    rhs1PN_F = &evolution::rhs_1PNnp3d3_FNS;
+	    if(jacA)
+	      jac1PN_F =  &evolution::jac_1PNnp3d3_FaNS;
+	  }
+            
+    }
 #endif
 
 #ifdef odePN2
   if(vm["terms.pn2"].as<bool>())
-    jac2PN_F = &evolution::jac_num2PN_F;
+    {
+      jac2PN_F = &evolution::jac_num2PN_F;
+
+      if(number_of_particles==2 && space_dimension == 2)
+	{
+	  rhs2PN_F = &evolution::rhs_2PNnp2d2_FNS;
+	  if(jacA)
+	    jac2PN_F =  &evolution::jac_2PNnp2d2_FaNS;
+	}
+      else     
+	if(number_of_particles==2 && space_dimension ==3)
+	  {
+	    rhs2PN_F = &evolution::rhs_2PNnp2d3_FS;
+	    if(jacA)
+	      jac2PN_F =  &evolution::jac_2PNnp2d3_FaS;
+	  }
+	else     
+	  if(number_of_particles==3 && space_dimension ==2)
+	    {
+	      rhs2PN_F = &evolution::rhs_2PNnp3d2_FNS;
+	      if(jacA)
+		jac2PN_F =  &evolution::jac_2PNnp3d2_FaNS;
+	    }
+	  else     
+	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	      {
+		rhs2PN_F = &evolution::rhs_2PNnp3d3_FS;
+		if(jacA)
+		  jac2PN_F =  &evolution::jac_2PNnp3d3_FaS;
+	  }
+	else  //	if(number_of_particles==3 && space_dimension ==3 )
+	  {
+	    rhs2PN_F = &evolution::rhs_2PNnp3d3_FNS;
+	    if(jacA)
+	      jac2PN_F =  &evolution::jac_2PNnp3d3_FaNS;
+	  }
+            
+    }
 #endif
-  
-#ifdef odePN2_5
+
+#ifdef odePN2_2
   if(vm["terms.pn2_5"].as<bool>())
-    jac2_5PN_F = &evolution::jac_num2_5PN_F;
+    {
+      jac2_5PN_F = &evolution::jac_num2_5PN_F;
+
+      if(number_of_particles==2 && space_dimension == 2)
+	{
+	  rhs2_5PN_F = &evolution::rhs_2_5PNnp2d2_FNS;
+	  if(jacA)
+	    jac2_5PN_F =  &evolution::jac_2_5PNnp2d2_FaNS;
+	}
+      else     
+	if(number_of_particles==2 && space_dimension ==3)
+	  {
+	    rhs2_5PN_F = &evolution::rhs_2_5PNnp2d3_FS;
+	    if(jacA)
+	      jac2_5PN_F =  &evolution::jac_2_5PNnp2d3_FaS;
+	  }
+	else     
+	  if(number_of_particles==3 && space_dimension ==2)
+	    {
+	      rhs2_5PN_F = &evolution::rhs_2_5PNnp3d2_FNS;
+	      if(jacA)
+		jac2_5PN_F =  &evolution::jac_2_5PNnp3d2_FaNS;
+	    }
+	  else     
+	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	      {
+		rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_FS;
+		if(jacA)
+		  jac2_5PN_F =  &evolution::jac_2_5PNnp3d3_FaS;
+	  }
+	else  //	if(number_of_particles==3 && space_dimension ==3 )
+	  {
+	    rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_FNS;
+	    if(jacA)
+	      jac2_5PN_F =  &evolution::jac_2_5PNnp3d3_FaNS;
+	  }
+            
+    }
 #endif
 
 #ifdef odePNSlo
   if(vm["terms.pnSOlo"].as<bool>())
+    {
     jacSOloPN_F = &evolution::jac_numSOloPN_F;
-
+    
+    if(number_of_particles==2 )
+      {
+	rhsSOloPN_F =  &evolution::rhs_SOloPNnp2d3_FS;
+	if(jacA)
+	  jacSOloPN_F = &evolution::jac_SOloPNnp2d3_FS;
+      }
+    else
+      {
+	rhsSOloPN_F =  &evolution::rhs_SOloPNnp3d3_FS;
+	if(jacA)
+	  jacSOloPN_F = &evolution::jac_SOloPNnp3d3_FS;
+      }
+      
+    }
   
   if(vm["terms.pnSSlo"].as<bool>())
-    jacSSloPN_F = &evolution::jac_numSSloPN_F;
+    {
+      jacSSloPN_F = &evolution::jac_numSSloPN_F;
 
-
+      if(number_of_particles==2 )
+	{
+	  rhsSSloPN_F =  &evolution::rhs_SSloPNnp2d3_FS;
+	  if(jacA)
+	    jacSSloPN_F = &evolution::jac_SSloPNnp2d3_FS;
+	}
+      else
+	{
+	  rhsSSloPN_F =  &evolution::rhs_SSloPNnp3d3_FS;
+	  if(jacA)
+	    jacSSloPN_F = &evolution::jac_SSloPNnp3d3_FS;
+	}
+     
+    }
   if(vm["terms.pnS2lo"].as<bool>())
+    {
     jacS2loPN_F = &evolution::jac_numS2loPN_F;
 
+    if(number_of_particles==2 )
+      {
+	rhsS2loPN_F =  &evolution::rhs_S2loPNnp2d3_FS;
+	if(jacA)
+	  jacS2loPN_F = &evolution::jac_S2loPNnp2d3_FS;
+      }
+    else
+      {
+	rhsS2loPN_F =  &evolution::rhs_S2loPNnp3d3_FS;
+	if(jacA)
+	  jacS2loPN_F = &evolution::jac_S2loPNnp3d3_FS;
+      }
+
+    
+    }
+    
 #endif
   
 #ifdef odePNSnlo
   if(vm["terms.pnSOnlo"].as<bool>())
-    jacSOnloPN_F = &evolution::jac_numSOnloPN_F;
-#endif
-  
-
-switch ( number_of_particles ) {
-
-  case 2 : 
-
-    switch ( space_dimension ) {
-
-    case 2 : 
-
-      rhsN_F = &evolution::rhs_Nnp2d2_FNS;
-
-      if(vm["evolution.JacA"].as<bool>())
-	jacN_F = &evolution::jac_Nnp2d2_FaNS;
-  
-
-#ifdef odePN1
-      if(vm["terms.pn1"].as<bool>()){
-	rhs1PN_F = &evolution::rhs_1PNnp2d2_FNS;
-	if(JacA)
-	  jac1PN_F = &evolution::jac_1PNnp2d2_FaNS;
-      }
-#endif
-    
-#ifdef odePN2
-      if(vm["terms.pn2"].as<bool>())
-	rhs2PN_F = &evolution::rhs_2PNnp2d2_FNS;
-#endif
-	  
-
-#ifdef odePN2_5
-      if(vm["terms.pn2_5"].as<bool>())
-	rhs2_5PN_F = &evolution::rhs_2_5PNnp2d2_FNS;
-#endif
-	  
-
-      break;
-
-    case 3 : 
-
-      rhsN_F = &evolution::rhs_Nnp2d3_FS;
-
-      if(vm["evolution.JacA"].as<bool>())
-	jacN_F = &evolution::jac_Nnp2d3_FaS;
-
-#ifdef odePN1
-      if(vm["terms.pn1"].as<bool>()){
-	rhs1PN_F = &evolution::rhs_1PNnp2d3_FS;
-	if(JacA)
-	  jac1PN_F = &evolution::jac_1PNnp2d3_FaS;
-      }
-#endif
-    
-      
-#ifdef odePN2
-      if(vm["terms.pn2"].as<bool>())
-	rhs2PN_F = &evolution::rhs_2PNnp2d3_FS;
-#endif
-
-#ifdef odePN2_5
-      if(vm["terms.pn2_5"].as<bool>())
-	rhs2_5PN_F = &evolution::rhs_2_5PNnp2d3_FS;
-#endif
-      
-#ifdef odePNSlo
-      if(vm["terms.pnSOlo"].as<bool>()){
-	rhsSOloPN_F = &evolution::rhs_SOloPNnp2d3_FS;
-	if(JacA)
-	  jacSOloPN_F = &evolution::jac_SOloPNnp2d3_FaS;
-      }
-
-      if(vm["terms.pnSSlo"].as<bool>()){
-	rhsSSloPN_F = &evolution::rhs_SSloPNnp2d3_FS;
-      	if(JacA)
-	  jacSSloPN_F = &evolution::jac_SSloPNnp2d3_FaS;
-      }
-      if(vm["terms.pnS2lo"].as<bool>()){
-	rhsS2loPN_F = &evolution::rhs_S2loPNnp2d3_FS;
-	if(JacA)
-	  jacS2loPN_F = &evolution::jac_S2loPNnp2d3_FaS;
-      }
-#endif
-
-      
-#ifdef odePNSnlo
-      if(vm["terms.pnSOnlo"].as<bool>())
-	rhsSOnloPN_F = &evolution::rhs_SOnloPNnp2d3_FS;
-#endif
-    
-
-      break;
-      
-    default : 
-      {
-	BOOST_LOG_SEV(lg, error) << "Number of dimensions must be 2 or 3: "<< space_dimension ;
-
-	exit(Finalize(0));
-      }
-      
-    }
-
-    break;
-
-  case 3 : 
-
-
-    switch ( space_dimension ) {
-
-    case 2 : 
-        
-
-      if(vm["evolution.JacA"].as<bool>())
-	jacN_F = &evolution::jac_Nnp3d2_FaNS;
-  
-#ifdef odePN1
-      if(vm["terms.pn1"].as<bool>()){
-	rhs1PN_F = &evolution::rhs_1PNnp3d2_FNS;
-	if(vm["terms.JacA"].as<bool>())
-	  jac1PN_F = &evolution::jac_1PNnp3d2_FaNS;
-      } 
-#endif
-
-#ifdef odePN2
-      if(vm["terms.pn2"].as<bool>())
-	rhs2PN_F = &evolution::rhs_2PNnp3d2_FNS;
-#endif
-	  
-#ifdef odePN2_5
-      if(vm["terms.pn2_5"].as<bool>())
-	rhs2_5PN_F = &evolution::rhs_2_5PNnp3d2_FNS;
-#endif
-	  
-    
-      break;
-
-    case 3 : 
-    
-
-      if(vm["terms.pnSOlo"].as<bool>() ||
-	 vm["terms.pnSSlo"].as<bool>() ||
-	 vm["terms.pnS2lo"].as<bool>() ||
-	 vm["terms.pnSOnlo"].as<bool>()||
-	 vm["terms.pnSSnlo"].as<bool>()) {
-
-
-	rhsN_F = &evolution::rhs_Nnp3d3_FS;
-	
-	if(vm["terms.JacA"].as<bool>())
-	  jacN_F = &evolution::jac_Nnp3d3_FaS;
-
-#ifdef odePN2
-	if(vm["terms.pn1"].as<bool>()){
-	  rhs1PN_F = &evolution::rhs_1PNnp3d3_FS;
-	  if(vm["evolution.JacA"].as<bool>())
-	    jac1PN_F = &evolution::jac_1PNnp3d3_FaS;
-	}
-#endif
-    
-      
-#ifdef odePN2
-	if(vm["terms.pn2"].as<bool>())
-	  rhs2PN_F = &evolution::rhs_2PNnp3d3_FS;
-#endif
-	
-#ifdef odePN2_5
-	/*
-
-	  if(vm["terms.pn2_5"].as<bool>())
-	  rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_F;
-	*/
-#endif
-	
-      }
-      else {
-	
-
-	rhsN_F = &evolution::rhs_Nnp3d3_FNS;
-	
-	if(vm["terms.JacA"].as<bool>())
-	  jacN_F = &evolution::jac_Nnp3d3_FaNS;
-
-#ifdef odePN1
-	if(vm["terms.pn1"].as<bool>()){
-	  rhs1PN_F = &evolution::rhs_1PNnp3d3_FNS;
-	  
-	  if(vm["terms.JacA"].as<bool>())
-	    jac1PN_F = &evolution::jac_1PNnp3d3_FaNS;
-	  
-	}
-#endif
-
-	
-#ifdef odePN2
-	if(vm["terms.pn2"].as<bool>())
-	  rhs2PN_F = &evolution::rhs_2PNnp3d3_FNS;
-#endif
-	
-#ifdef odePN2_5
-	if(vm["terms.pn2_5"].as<bool>())
-	  rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_FNS;
-#endif
-
-	
-#ifdef odePNSlo      
-	if(vm["terms.pnSOlo"].as<bool>()){
-
-	  rhsSOloPN_F = &evolution::rhs_SOloPNnp3d3_FS;
-	  if(vm["evolution.JacA"].as<bool>())
-	    jacSOloPN_F = &evolution::jac_SOloPNnp3d3_FaS;
-	}
-
-	if(vm["terms.pnSSlo"].as<bool>()){
-	  rhsSSloPN_F = &evolution::rhs_SSloPNnp3d3_FS;
-	  if(vm["evolution.JacA"].as<bool>())
-	    jacSSloPN_F = &evolution::jac_SSloPNnp3d3_FaS;
-	}
-	if(vm["terms.pnS2lo"].as<bool>()){
-	  rhsS2loPN_F = &evolution::rhs_S2loPNnp3d3_FS;
-	  if(vm["evolution.JacA"].as<bool>())
-	    jacS2loPN_F = &evolution::jac_S2loPNnp3d3_FaS;
-	}
-#endif
-	     
-
-#ifdef odePNSnlo
-	/*
-	  if(vm["terms.pnSOnlo)
-	  rhsSOnloPN_F = &evolution::rhs_SOnloPNnp3d3_FS;
-	*/
-#endif
-
-
-	break;
-    
-	default : 
-	  {    
-	    BOOST_LOG_SEV(lg, error) << "Number of dimensions must be 2 or 3: "<< space_dimension ;
-
-	    exit(Finalize(0));
-	  }
-      }
-
-    }
-
-    break;
-    
-  default : 
     {
-      BOOST_LOG_SEV(lg, error) << "evolution.particles  should be  2 or 3.";
-      BOOST_LOG_SEV(lg, error) << "Current value : "<< number_of_particles;
-      exit(Finalize(0));
-      
+    jacSOnloPN_F = &evolution::jac_numSOnloPN_F;
+
+    if(number_of_particles==2 )
+      {
+	rhsSOnloPN_F =  &evolution::rhs_SOnloPNnp2d3_FS;
+	if(jacA)
+	  jacSOnloPN_F = &evolution::jac_SOnloPNnp2d3_FS;
+      }
+    else
+      {
+	rhsSOnloPN_F =  &evolution::rhs_SOnloPNnp3d3_FS;
+	if(jacA)
+	  jacSOnloPN_F = &evolution::jac_SOnloPNnp3d3_FS;
+      }
+
     }
-  }
-
-
+#endif
+  
   
   if(vm["evolution.chaos_test"].as<bool>())
     
@@ -533,7 +488,7 @@ switch ( number_of_particles ) {
 
 void evolution::init(const valarray<double>  &_y,const valarray<double>  &_par){
 
-  if( _y.size() != ode_size  || _par.size() != number_of_particles )
+  if( _y.size() != number_of_variables  || _par.size() != number_of_particles )
     {
 
       BOOST_LOG_SEV(lg, error) << "Wrong initialization! On variables size";
@@ -542,7 +497,8 @@ void evolution::init(const valarray<double>  &_y,const valarray<double>  &_par){
 
     }
 
-  for(int i =0; i < ode_size; i++)
+  
+  for(int i =0; i < number_of_variables; i++)
       y[i]=_y[i];
 
   for(int i =0; i < number_of_particles; i++)
@@ -556,11 +512,14 @@ bool evolution::update(double &t)
 {
 
 
+
   int status = gsl_odeiv_evolve_apply (evolve, control, step,
 				       &system,
 				       &time, final_time,
-				       &dt, y);
+				       &dt, &y[0]);
 
+
+  
   if (status != GSL_SUCCESS)
     {
       BOOST_LOG_SEV(lg, error) << "Step failed at time step:"<< time;
@@ -588,12 +547,14 @@ void evolution::close()
 
 int evolution::rhs(double t, const double * y, double * f, void * param)
 {
+
   
   evolution* mySelf = (evolution*) pt2evolution;
 
 
   // call member
   mySelf->RHSN(t,y,f,param);
+
 
   mySelf->RHS1PN(t,y,f,param);
 
@@ -707,7 +668,6 @@ int evolution::rhsN (double t, const double y[], double f[], void *param){
 
   double *par = static_cast<double *>(param);
   
-
 
   for(int i=0; i < number_of_variables; i++)
 

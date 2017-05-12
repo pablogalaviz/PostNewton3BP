@@ -38,7 +38,7 @@ class initialData
 
   src::severity_logger< severity_level > lg;
 
-  size_t simulation_size; 
+  int simulation_size; 
   size_t number_of_particles; 
   
   vector<valarray<double>> y; 
@@ -46,7 +46,9 @@ class initialData
 
   void load_file(string filename);
 
-  bool verbose; 
+  bool verbose;
+
+  bool spin; 
   
  public:
 
@@ -61,6 +63,8 @@ class initialData
  
  inline valarray<double> get_par(int i){return par[i]; }
 
+ bool has_spin(){ return spin;}
+ 
 };
 
 

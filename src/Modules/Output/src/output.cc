@@ -70,7 +70,7 @@ output::output(string output_directory,bool _verbose, bool _debug, double _delta
 
 
 
-void output::init()
+void output::init(initialData &id, size_t i)
 {
 
 
@@ -79,11 +79,41 @@ void output::init()
   int mpi_rank = MPI::COMM_WORLD.Get_rank ();
   int mpi_size = MPI::COMM_WORLD.Get_size ();
 
+  stringstream ss_gpr;
+  ss_gpr << "/"<< i;  
+  hid_t group_id = H5Gcreate(file_id, ss_gpr.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose(group_id);
+
+  
+  stringstream ss_position;
+  ss_position << "/"<< i <<"/position";  
+   group_id = H5Gcreate(file_id, ss_position.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose(group_id);
+
+  
+
+  
+  stringstream ss_momentum;
+  ss_momentum << "/"<< i <<"/momentum";  
+  group_id = H5Gcreate(file_id, ss_momentum.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose(group_id);
+
+  if(id.has_spin())
+    {
+      stringstream ss_spin;
+      ss_spin << "/"<< i <<"/spin";  
+
+      group_id = H5Gcreate(file_id, ss_spin.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+      H5Gclose(group_id);
+    }
+
+  
+  MPI::COMM_WORLD.Barrier ();
 
 }
 
 
-void output::update(double t, int index, bool force)
+void output::update(double t, int index,evolution &evo , bool force)
 {
 
   iteration++;
@@ -95,7 +125,7 @@ void output::update(double t, int index, bool force)
 
       }
 
-    save(t);
+    save(t,evo.get_position(),evo.get_momentum(),evo.get_spin());
     
     next_output += delta_time;
 
@@ -104,8 +134,11 @@ void output::update(double t, int index, bool force)
   
 }
 
-void output::save(double t)
+void output::save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin)
 {
 
+  cout << valarray2str(pos) << endl;
+
+  
 
 }
