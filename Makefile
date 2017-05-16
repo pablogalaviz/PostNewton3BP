@@ -99,7 +99,7 @@ libpaths += src/Modules/Utils
 
 # ---------------------------------------------------------------
 
-#PN1 = -DodePN1
+PN1 = -DodePN1
 ##PN2 = -DodePN2
 #PN2_5 = -DodePN2_5
 ##PNSlo = -DodePNSlo

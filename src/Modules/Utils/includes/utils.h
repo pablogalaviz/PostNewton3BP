@@ -95,6 +95,17 @@ size_t r_index(size_t a, size_t i, size_t space_dim);
 size_t p_index(size_t a, size_t i, size_t space_dim);
 size_t s_index(size_t a, size_t i, size_t space_dim);
 
+struct terms_t {
+  bool pn1 = false; 
+  bool pn2 = false; 
+  bool pn2_5 = false; 
+  bool pnSOlo = false; 
+  bool pnSSlo = false; 
+  bool pnS2lo = false; 
+  bool pnSOnlo = false; 
+  bool pnSSnlo = false;
+};
+
 template<class T> 
 string vector2str(vector<T> v) {
 

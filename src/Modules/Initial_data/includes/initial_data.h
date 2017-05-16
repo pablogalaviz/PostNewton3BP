@@ -49,6 +49,8 @@ class initialData
   bool verbose;
 
   bool spin; 
+
+  size_t dimension; 
   
  public:
 
@@ -59,11 +61,15 @@ class initialData
 
  inline int sim_size(){ return simulation_size;}
 
- inline valarray<double> get_y(int i){return y[i]; }
+ inline valarray<double> get_variables(int i){return y[i]; }
  
- inline valarray<double> get_par(int i){return par[i]; }
+ inline valarray<double> get_mass(int i){return par[i]; }
 
  bool has_spin(){ return spin;}
+
+ inline size_t get_number_of_particles() {return number_of_particles;} 
+
+ inline size_t get_dimension(){ return dimension; }
  
 };
 

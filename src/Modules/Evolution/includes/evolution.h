@@ -39,19 +39,11 @@ class evolution
 
   bool verbose; 
 
-  bool spin; 
-  
-  const gsl_odeiv_step_type * step_type;
-
-  gsl_odeiv_step * step;
-
-  gsl_odeiv_control * control;
-
   gsl_odeiv_evolve * evolve;
 
-  const gsl_rng_type *rng_T;
-
-  gsl_rng *rng_r;
+  gsl_odeiv_control * control;
+  
+  gsl_odeiv_step * step;
 
   gsl_odeiv_system system;
 
@@ -61,21 +53,25 @@ class evolution
 
   double dt; 
 
+  valarray<double> y;
+  
   double dx; 
   
-  size_t ode_size; 
-
-  size_t number_of_variables; 
- 
-  size_t number_of_particles; 
+  size_t space_dimension;
   
-  valarray<double> y;
+  size_t number_of_variables; 
+   
+  size_t number_of_particles; 
   
   valarray<double> dy; 
 
   valarray<double> par;
 
+  valarray<double> position;
+  valarray<double> momentum;
+  valarray<double> spin;
 
+  
   static int rhs(double t, const double * y, double * f, void * param);
 
   int rhsN(double t, const double * y, double * f, void * param);
@@ -296,31 +292,78 @@ class evolution
   double jac_numSOnloPN_F(double t, const double y[], double par[], int i, int j);
  
   
-  void set_rhs(po::variables_map &vm);
+  void set_rhs(terms_t _pn_terms, bool jacA, bool _chaos_test, bool _spin);
+
+
   
  public:
 
   size_t NDvar; 
 
   
- evolution(po::variables_map &vm);
+  evolution(bool _evolution_verbose,
+	    string _ode_method,
+	    bool _chaos_test,
+	    bool _JacA,
+	    double _initial_dt,
+	    double _Jacobian_dx,
+	    double _factor_chaos_test,
+	    double _scaling_variable,
+	    double _scaling_derivative,
+	    double _eps_rel,
+	    double _eps_abs,
+	    double _final_time,
+	    valarray<double> &_id_variables,
+	    valarray<double> &_mass,
+	    bool _spin, 
+	    terms_t _pn_terms
+	    );
 
  ~evolution(){};
 
  bool update(double &t);
  
- void init(const valarray<double> &_y,const valarray<double> &_par);
 
  void close();
 
  valarray<double> get_position(){
-   return y; }
+
+   int i=0;
+   for(int a=0; a<number_of_particles; a++)
+     for(int axis=0; axis<space_dimension; axis++)
+       {
+	 position[i]=y[r_index(a,axis,space_dimension)];
+	 i++;
+       }
+	 
+   return position;
+ }
 
   valarray<double> get_momentum(){
-   return y; }
+    int i=0;
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  momentum[i]=y[p_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+   return momentum; }
 
   valarray<double> get_spin(){
-   return y; }
+
+    int i=0;
+    
+    if(spin.size()>0)
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  spin[i]=y[s_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+    
+   return spin; }
 
  
 };

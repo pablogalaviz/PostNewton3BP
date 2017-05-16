@@ -172,7 +172,7 @@ void initialData::load_file(string filename){
 	  exit(Finalize(0));
 	}
 	
-      int dimension=3;
+      dimension=3;
 
       if(s1+s2+s3+z1.size()+z2.size()+z3.size()+pz1.size()+pz2.size()+pz3.size() == 0)
 	dimension=2;

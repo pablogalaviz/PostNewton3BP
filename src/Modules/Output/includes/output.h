@@ -35,6 +35,8 @@
 #include<evolution.h>
 #include<initial_data.h> 
 
+#define NDIMS 2
+
 class output
 {
 
@@ -55,11 +57,13 @@ class output
   hid_t file_id;
 
   int iteration;
-  int iteration_set;
+  vector<size_t> iteration_set;
 
   double next_output;
 
-  void save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin);
+  void save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin,size_t index);
+
+  void create_dataset(string name, hid_t group_id, size_t ncols);
 
   
  public:
@@ -73,6 +77,7 @@ class output
   
   void update(double t, int index,evolution &evo,  bool force=false);
 
+  inline void close(){hsize_t status = H5Fclose(file_id);}
  
 
 };

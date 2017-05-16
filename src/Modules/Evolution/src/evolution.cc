@@ -31,42 +31,60 @@
 void* pt2evolution;
 
 
-evolution::evolution(po::variables_map &vm){
+evolution::evolution(
+		     bool _evolution_verbose,
+		     string _ode_method,
+		     bool _chaos_test,
+		     bool _JacA,
+		     double _initial_dt,
+		     double _Jacobian_dx,
+		     double _factor_chaos_test,
+		     double _scaling_variable,
+		     double _scaling_derivative,
+		     double _eps_rel,
+		     double _eps_abs,
+		     double _final_time,
+		     valarray<double> &_id_variables,
+		     valarray<double> &_mass,
+		     bool _spin, 
+		     terms_t _pn_terms
+		     )
+{
 
   pt2evolution =(void*) this;
   
-  verbose = vm["evolution.verbose"].as<bool>();
+  verbose = _evolution_verbose;
 
+  dt = _initial_dt;
+  final_time = _final_time;
+  dx = _Jacobian_dx;
 
+  size_t number_of_particles = _mass.size();
+
+  const gsl_odeiv_step_type * step_type;
   
-  if( vm["evolution.ode_method"].as<string>().compare("rk2") == 0 ) 
+  if( _ode_method.compare("rk2") == 0 ) 
     step_type = gsl_odeiv_step_rk2;
-  else if( vm["evolution.ode_method"].as<string>().compare("rk4") == 0 ) 
+  else if( _ode_method.compare("rk4") == 0 ) 
     step_type = gsl_odeiv_step_rk4;
-  else if( vm["evolution.ode_method"].as<string>().compare("rkck") == 0 ) 
+  else if( _ode_method.compare("rkck") == 0 ) 
     step_type = gsl_odeiv_step_rkck;
-  else if( vm["evolution.ode_method"].as<string>().compare("rk8pd") == 0 ) 
+  else if( _ode_method.compare("rk8pd") == 0 ) 
     step_type = gsl_odeiv_step_rk8pd;
-  else if( vm["evolution.ode_method"].as<string>().compare("rk2imp") == 0 ) 
+  else if( _ode_method.compare("rk2imp") == 0 ) 
     step_type = gsl_odeiv_step_rk2imp;
-  else if( vm["evolution.ode_method"].as<string>().compare("rk4imp") == 0 ) 
+  else if( _ode_method.compare("rk4imp") == 0 ) 
     step_type = gsl_odeiv_step_rk4imp;
-  else if( vm["evolution.ode_method"].as<string>().compare("bsimp") == 0 ) 
+  else if( _ode_method.compare("bsimp") == 0 ) 
     step_type = gsl_odeiv_step_bsimp;
-  else if( vm["evolution.ode_method"].as<string>().compare("gear1") == 0 ) 
+  else if( _ode_method.compare("gear1") == 0 ) 
     step_type = gsl_odeiv_step_gear1;
-  else if( vm["evolution.ode_method"].as<string>().compare("gear2") == 0 ) 
+  else if( _ode_method.compare("gear2") == 0 ) 
     step_type = gsl_odeiv_step_gear2;
   else
     step_type = gsl_odeiv_step_rkf45;
 
   time =0; 
-  dt = vm["evolution.initial_dt"].as<double>();
-  final_time = vm["evolution.final_time"].as<double>();
-  dx = vm["evolution.jacobian_dx"].as<double>();
-
-  number_of_particles  = vm["initial_data.particles"].as<size_t>();
-
   
   if (number_of_particles < 2 || number_of_particles > 3)
     {
@@ -77,75 +95,49 @@ evolution::evolution(po::variables_map &vm){
       exit(Finalize(0));
     }
 
-  bool plane_constrain =  vm["evolution.plane_constrain"].as<bool>();
-
-
-  bool pnSOlo =false;
-  bool pnSSlo=false;
-  bool pnS2lo=false;
-#ifdef odePNSlo
-  pnSOlo =vm["terms.pnSOlo"].as<bool>();
-  pnSSlo=vm["terms.pnSSlo"].as<bool>();
-  pnS2lo=vm["terms.pnS2lo"].as<bool>();
-#endif
-  bool pnSOnlo=false;
-  bool pnSSnlo=false;
-#ifdef odePNSnlo
-  pnSOnlo =vm["terms.pnSOnlo"].as<bool>();
-  pnSSnlo=vm["terms.pnSSnlo"].as<bool>();
-#endif
-
-  spin =  pnSOlo||pnSSlo||pnS2lo||pnSOnlo||pnSSnlo;
+  bool plane_constrain;
     
-  if(number_of_particles==2 && ! plane_constrain  && !spin)
+  if(number_of_particles==2 && !_spin)
     plane_constrain=true;
   else
-    if(plane_constrain && spin)
+    if(plane_constrain && _spin)
       plane_constrain=false;
 
-  number_of_variables = plane_constrain ?  number_of_particles*4 : number_of_particles*6;
-
-  if(spin) 
-    number_of_variables += plane_constrain ?  number_of_particles*2 : number_of_particles*3;
-
-  ode_size = number_of_variables ;
+  number_of_variables = _id_variables.size();
+    
+  size_t ode_size = number_of_variables;
 
   NDvar = number_of_variables; 
 
   
-  bool chaos_test = vm["evolution.chaos_test"].as<bool>() ;
  
-  if(chaos_test) {
+  if(_chaos_test) {
 
     ode_size *= 2;
 
     double scale_abs [ode_size];
     
-    double fac =  vm["evolution.factor_chaos_test"].as<double>();
-    
-
     for(int i = 0; i < number_of_variables; i++)
       scale_abs[i] = 1.0;
 
     for(int i = number_of_variables; i < ode_size; i++)
-      scale_abs[i] = fac;
+      scale_abs[i] = _factor_chaos_test;
 
     control = gsl_odeiv_control_scaled_new (
-					    vm["evolution.epsilon_abs"].as<double>(),
-					    vm["evolution.epsilon_rel"].as<double>(),
-					    vm["evolution.scaling_variable"].as<double>(),
-					    vm["evolution.scaling_derivative"].as<double>(),
+					    _eps_abs,
+					    _eps_rel,
+					    _scaling_variable,
+					    _scaling_derivative,
 					    scale_abs,
 					    ode_size);
 
   }
   else
     control = gsl_odeiv_control_standard_new (
-					      vm["evolution.epsilon_abs"].as<double>(),
-					      vm["evolution.epsilon_rel"].as<double>(),
-					      vm["evolution.scaling_variable"].as<double>(),
-					      vm["evolution.scaling_derivative"].as<double>());
-
+					    _eps_abs,
+					    _eps_rel,
+					    _scaling_variable,
+					    _scaling_derivative);
 
 
   step = gsl_odeiv_step_alloc (step_type, ode_size);
@@ -160,7 +152,7 @@ evolution::evolution(po::variables_map &vm){
       BOOST_LOG_SEV(lg, info)  << "======================================";
       if(plane_constrain)
 	BOOST_LOG_SEV(lg,info)  << "Evolution in 2D";
-      if(chaos_test)
+      if(_chaos_test)
 	BOOST_LOG_SEV(lg,info)  << "Testing for chaos";
       BOOST_LOG_SEV(lg, info)  << "Method: "  << gsl_odeiv_step_name(step);
       BOOST_LOG_SEV(lg, info)  << "Control: "  << gsl_odeiv_control_name(control);
@@ -170,31 +162,40 @@ evolution::evolution(po::variables_map &vm){
     }
 
   y.resize(ode_size);
-  
-  dy.resize(ode_size);
+  for(int i =0; i < _id_variables.size(); i++)
+    y[i]=_id_variables[i];
   
   par.resize(number_of_particles);
-      
-  set_rhs(vm);
-
-
-  
-};
-
-void evolution::set_rhs(po::variables_map &vm)
-{
-
-  size_t space_dimension = 3; 
-
-  
-  if(number_of_particles == 2 || vm["evolution.plane_constrain"].as<bool>() )
-    space_dimension = 2; 
+  for(int i =0; i < _mass.size(); i++)
+    par[i]=_mass[i];
 
   
   system.dimension = ode_size;
 
   system.params = &par[0];
+  
+  
+  dy.resize(ode_size);
+        
 
+  set_rhs(_pn_terms, _JacA,_chaos_test,_spin);
+
+  
+};
+
+void evolution::set_rhs(terms_t _pn_terms, bool jacA,bool _chaos_test, bool _spin )
+{
+
+  number_of_particles = par.size();
+
+  space_dimension = _spin ? number_of_variables/(3*number_of_particles) : number_of_variables/(2*number_of_particles);
+
+  position.resize(number_of_particles*space_dimension);
+  momentum.resize(number_of_particles*space_dimension);
+  if(_spin)
+    spin.resize(number_of_particles*space_dimension);
+  else
+    spin.resize(0);
 
   rhs1PN_F = &evolution::rhs_zero;
   jac1PN_F = &evolution::jac_zero;
@@ -218,7 +219,6 @@ void evolution::set_rhs(po::variables_map &vm)
   rhsSOnloPN_F = &evolution::rhs_zero;
   jacSOnloPN_F = &evolution::jac_zero;
 
-  bool jacA= vm["evolution.JacA"].as<bool>();
   
   
   //Newtonian
@@ -234,6 +234,8 @@ void evolution::set_rhs(po::variables_map &vm)
     if(number_of_particles==2 && space_dimension ==3)
       {
 	rhsN_F = &evolution::rhs_Nnp2d3_FS;
+	BOOST_LOG_SEV(lg, debug)  << "Set rhs_Nnp2d3_FS";
+	
 	if(jacA)
 	  jacN_F =  &evolution::jac_Nnp2d3_FaS;
       }
@@ -241,25 +243,29 @@ void evolution::set_rhs(po::variables_map &vm)
       if(number_of_particles==3 && space_dimension ==2)
 	{
 	  rhsN_F = &evolution::rhs_Nnp3d2_FNS;
+	  BOOST_LOG_SEV(lg, debug)  << "Set rhs_Nnp3d2_FNS";
+
 	  if(jacA)
 	    jacN_F =  &evolution::jac_Nnp3d2_FaNS;
 	}
       else     
-	if(number_of_particles==3 && space_dimension ==3 && spin)
+	if(number_of_particles==3 && space_dimension ==3 && _spin)
 	  {
 	    rhsN_F = &evolution::rhs_Nnp3d3_FS;
+	    BOOST_LOG_SEV(lg, debug)  << "Set rhs_Nnp3d3_FS";
 	    if(jacA)
 	      jacN_F =  &evolution::jac_Nnp3d3_FaS;
 	  }
 	else  //	if(number_of_particles==3 && space_dimension ==3 )
 	  {
 	    rhsN_F = &evolution::rhs_Nnp3d3_FNS;
+	    BOOST_LOG_SEV(lg, debug)  << "Set rhs_Nnp3d3_FNS";
 	    if(jacA)
 	      jacN_F =  &evolution::jac_Nnp3d3_FaNS;
 	  }
      
 #ifdef odePN1
-  if(vm["terms.pn1"].as<bool>())
+  if(_pn_terms.pn1)
     {
       jac1PN_F = &evolution::jac_num1PN_F;
 
@@ -284,7 +290,7 @@ void evolution::set_rhs(po::variables_map &vm)
 		jac1PN_F =  &evolution::jac_1PNnp3d2_FaNS;
 	    }
 	  else     
-	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	    if(number_of_particles==3 && space_dimension ==3 && _spin)
 	      {
 		rhs1PN_F = &evolution::rhs_1PNnp3d3_FS;
 		if(jacA)
@@ -301,7 +307,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
 
 #ifdef odePN2
-  if(vm["terms.pn2"].as<bool>())
+  if(_pn_terms.pn2)
     {
       jac2PN_F = &evolution::jac_num2PN_F;
 
@@ -326,7 +332,7 @@ void evolution::set_rhs(po::variables_map &vm)
 		jac2PN_F =  &evolution::jac_2PNnp3d2_FaNS;
 	    }
 	  else     
-	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	    if(number_of_particles==3 && space_dimension ==3 && _spin)
 	      {
 		rhs2PN_F = &evolution::rhs_2PNnp3d3_FS;
 		if(jacA)
@@ -343,7 +349,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
 
 #ifdef odePN2_2
-  if(vm["terms.pn2_5"].as<bool>())
+  if(_terms.pn2_5)
     {
       jac2_5PN_F = &evolution::jac_num2_5PN_F;
 
@@ -368,7 +374,7 @@ void evolution::set_rhs(po::variables_map &vm)
 		jac2_5PN_F =  &evolution::jac_2_5PNnp3d2_FaNS;
 	    }
 	  else     
-	    if(number_of_particles==3 && space_dimension ==3 && spin)
+	    if(number_of_particles==3 && space_dimension ==3 && _spin)
 	      {
 		rhs2_5PN_F = &evolution::rhs_2_5PNnp3d3_FS;
 		if(jacA)
@@ -385,7 +391,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
 
 #ifdef odePNSlo
-  if(vm["terms.pnSOlo"].as<bool>())
+  if(_terms.pnSOlo)
     {
     jacSOloPN_F = &evolution::jac_numSOloPN_F;
     
@@ -404,7 +410,7 @@ void evolution::set_rhs(po::variables_map &vm)
       
     }
   
-  if(vm["terms.pnSSlo"].as<bool>())
+  if(_terms.pnSSlo)
     {
       jacSSloPN_F = &evolution::jac_numSSloPN_F;
 
@@ -422,7 +428,7 @@ void evolution::set_rhs(po::variables_map &vm)
 	}
      
     }
-  if(vm["terms.pnS2lo"].as<bool>())
+  if(_terms.pnS2lo)
     {
     jacS2loPN_F = &evolution::jac_numS2loPN_F;
 
@@ -445,7 +451,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
   
 #ifdef odePNSnlo
-  if(vm["terms.pnSOnlo"].as<bool>())
+  if(_terms.pnSOnlo)
     {
     jacSOnloPN_F = &evolution::jac_numSOnloPN_F;
 
@@ -466,7 +472,7 @@ void evolution::set_rhs(po::variables_map &vm)
 #endif
   
   
-  if(vm["evolution.chaos_test"].as<bool>())
+  if(_chaos_test)
     
     system.function = rhsC;
 
@@ -486,25 +492,6 @@ void evolution::set_rhs(po::variables_map &vm)
 
 
 
-void evolution::init(const valarray<double>  &_y,const valarray<double>  &_par){
-
-  if( _y.size() != number_of_variables  || _par.size() != number_of_particles )
-    {
-
-      BOOST_LOG_SEV(lg, error) << "Wrong initialization! On variables size";
-
-      exit(Finalize(0));
-
-    }
-
-  
-  for(int i =0; i < number_of_variables; i++)
-      y[i]=_y[i];
-
-  for(int i =0; i < number_of_particles; i++)
-      par[i]=_par[i];
-  
-}
 
 
 
@@ -512,6 +499,7 @@ bool evolution::update(double &t)
 {
 
 
+  
 
   int status = gsl_odeiv_evolve_apply (evolve, control, step,
 				       &system,
@@ -554,7 +542,6 @@ int evolution::rhs(double t, const double * y, double * f, void * param)
 
   // call member
   mySelf->RHSN(t,y,f,param);
-
 
   mySelf->RHS1PN(t,y,f,param);
 

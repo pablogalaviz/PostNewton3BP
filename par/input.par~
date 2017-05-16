@@ -16,7 +16,7 @@ scaling_derivative=1
 epsilon_rel=9.9999999999999995e-07
 epsilon_abs=1e-6
 
-final_time=1000
+final_time=1
 
 verbose = no
 [initial_data]
