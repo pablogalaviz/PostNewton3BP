@@ -63,7 +63,7 @@ class output
 
   void save(valarray<double> pos,string group_name, size_t index);
 
-  void create_dataset(string name, hid_t group_id, size_t ncols);
+  void create_dataset(string name, hid_t group_id, size_t ncols,int np, int dim);
 
   
  public:

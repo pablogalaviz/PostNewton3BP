@@ -96,12 +96,13 @@ void output::init(initialData &id, size_t i)
   hid_t group_id = H5Gcreate(file_id, ss_grp.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
 
   size_t ncols=id.get_number_of_particles()*id.get_dimension()+1;
-
+  size_t np=id.get_number_of_particles();
+  size_t dim=id.get_dimension();
   
-  create_dataset("position", group_id, ncols);
-  create_dataset("momentum", group_id, ncols);
-  create_dataset("spin", group_id, ncols);
-  create_dataset("waves", group_id, 39);
+  create_dataset("position", group_id, ncols,np,dim);
+  create_dataset("momentum", group_id, ncols,np,dim);
+  create_dataset("spin", group_id, ncols,np,dim);
+  create_dataset("waves", group_id, 39,np,dim);
   
  
   H5Gclose(group_id);
@@ -117,7 +118,7 @@ void output::init(initialData &id, size_t i)
 }
 
 
-void output::create_dataset(string name, hid_t group_id, size_t ncols)
+void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int dim)
 {
 
   
@@ -140,13 +141,19 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols)
 
   hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
 
-  herr_t attribute_id = H5Acreate (dset_id, "columns",  H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  BOOST_LOG_SEV(lg, logging::trivial::debug) << "np: "<< np;
+   
+  herr_t attribute_id = H5Acreate (dset_id, "np",  H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(attribute_id, H5T_NATIVE_INT, &np);
+  H5Aclose(attribute_id);
 
-  double zz=0.0;
-  H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &zz);
-  
+  BOOST_LOG_SEV(lg, logging::trivial::debug) << "dim: "<< dim;
+
+  attribute_id = H5Acreate (dset_id, "dim",  H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(attribute_id, H5T_NATIVE_INT, &dim);
   H5Aclose(attribute_id);
   
+  H5Sclose(dataspace_id);
   
   H5Pclose(plist_id);
   H5Sclose(filespace);    
@@ -218,7 +225,6 @@ void output::save(valarray<double> data, string group_name , size_t index)
   hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_INDEPENDENT);
 
-  BOOST_LOG_SEV(lg, logging::trivial::debug) << "data_size: "<< data.size();
 
   status = H5Dwrite(dset_id, //check
 		    H5T_NATIVE_DOUBLE,
@@ -227,7 +233,6 @@ void output::save(valarray<double> data, string group_name , size_t index)
 		    plist_id, //check
 		    &data[0]); //check
 
-  BOOST_LOG_SEV(lg, logging::trivial::debug) << "done";
   
   H5Dclose(dset_id);
   H5Gclose(group_id);
