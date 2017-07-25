@@ -95,12 +95,13 @@ void output::init(initialData &id, size_t i)
   
   hid_t group_id = H5Gcreate(file_id, ss_grp.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
 
-  size_t ncols=id.get_number_of_particles()*id.get_dimension();
+  size_t ncols=id.get_number_of_particles()*id.get_dimension()+1;
 
   
   create_dataset("position", group_id, ncols);
   create_dataset("momentum", group_id, ncols);
   create_dataset("spin", group_id, ncols);
+  create_dataset("waves", group_id, 39);
   
  
   H5Gclose(group_id);
@@ -135,6 +136,17 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols)
 
   hid_t dset_id = H5Dcreate(group_id, name.c_str(), H5T_NATIVE_DOUBLE, filespace,H5P_DEFAULT, plist_id, H5P_DEFAULT);
 
+  hsize_t dims = 1;
+
+  hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
+
+  herr_t attribute_id = H5Acreate (dset_id, "columns",  H5T_IEEE_F64BE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+
+  double zz=0.0;
+  H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &zz);
+  
+  H5Aclose(attribute_id);
+  
   
   H5Pclose(plist_id);
   H5Sclose(filespace);    
@@ -156,7 +168,13 @@ void output::update(double t, int index,evolution &evo , bool force)
 
       }
 
-    save(t,evo.get_position(),evo.get_momentum(),evo.get_spin(),index);
+    iteration_set[index]+=1;
+
+    save(evo.get_position(),"position",index);
+    save(evo.get_momentum(),"momentum",index);
+    save(evo.get_spin(),"spin",index);
+    save(evo.get_waves(),"waves",index);
+
     
     next_output += delta_time;
 
@@ -165,28 +183,21 @@ void output::update(double t, int index,evolution &evo , bool force)
   
 }
 
-void output::save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin, size_t index)
+void output::save(valarray<double> data, string group_name , size_t index)
 {
-
-
-
-  iteration_set[index]+=1;
 
   
   stringstream ss_grp;
   ss_grp << "/"<< index;  
 
-  BOOST_LOG_SEV(lg, logging::trivial::debug) << "Index: "<< index<< " grp: "<< ss_grp.str();
 
   herr_t status;  
   
   hid_t group_id = H5Gopen2(file_id, ss_grp.str().c_str(), H5P_DEFAULT);
   
 
-
-
-  hid_t dset_id = H5Dopen (group_id, "position", H5P_DEFAULT);
-  size_t ncols=pos.size();
+  hid_t dset_id = H5Dopen (group_id, group_name.c_str(), H5P_DEFAULT);
+  size_t ncols=data.size();
 
   hsize_t      size[NDIMS]={iteration_set[index],ncols};
   
@@ -207,39 +218,19 @@ void output::save(double t,valarray<double> pos, valarray<double> mom,valarray<d
   hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
   H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_INDEPENDENT);
 
+  BOOST_LOG_SEV(lg, logging::trivial::debug) << "data_size: "<< data.size();
+
   status = H5Dwrite(dset_id, //check
 		    H5T_NATIVE_DOUBLE,
 		    memspace, //check
 		    filespace, //check
 		    plist_id, //check
-		    &pos[0]); //check
+		    &data[0]); //check
 
+  BOOST_LOG_SEV(lg, logging::trivial::debug) << "done";
   
   H5Dclose(dset_id);
   H5Gclose(group_id);
-
-
-  return;    
-
-  /*
-
-  hsize_t	count [NDIMS] = {1,1};	         
-  hsize_t	stride[NDIMS] = {1,1};
-  hsize_t	block [NDIMS] = {1,ncols};  
-
-  
-  
-  filespace = H5Dget_space(dset_id);
-  herr_t status = H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, stride, count, block);
-
-
-
-  
- 
-  H5Dclose(dset_id);
-  H5Sclose(filespace);
-  H5Pclose(plist_id);  
-  */
   
   
 }

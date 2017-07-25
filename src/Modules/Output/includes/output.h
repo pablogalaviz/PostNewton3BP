@@ -61,7 +61,7 @@ class output
 
   double next_output;
 
-  void save(double t,valarray<double> pos, valarray<double> mom,valarray<double> spin,size_t index);
+  void save(valarray<double> pos,string group_name, size_t index);
 
   void create_dataset(string name, hid_t group_id, size_t ncols);
 

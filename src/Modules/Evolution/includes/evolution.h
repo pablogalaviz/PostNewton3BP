@@ -64,12 +64,14 @@ class evolution
   size_t number_of_particles; 
   
   valarray<double> dy; 
+  valarray<double> ddy; 
 
   valarray<double> par;
 
   valarray<double> position;
   valarray<double> momentum;
   valarray<double> spin;
+  valarray<double> waves;
 
   
   static int rhs(double t, const double * y, double * f, void * param);
@@ -294,6 +296,13 @@ class evolution
   
   void set_rhs(terms_t _pn_terms, bool jacA, bool _chaos_test, bool _spin);
 
+  void comp_waves(const double Qtt[3][3],const double Qttt[3][3][3],const double Ctt[3][3][3], double *h4l2);
+
+  void comp_Qtt(const double y[], const double dydt[], const double ddydt2[], double (&Qtt)[3][3]);
+
+  void comp_Qttt(const double y[], const double dydt[], const double ddydt2[], double (&Qttt)[3][3][3]);
+
+  void comp_Ctt(const double y[], const double dydt[], const double ddydt2[], double (&Ctt)[3][3][3]);
 
   
  public:
@@ -328,7 +337,8 @@ class evolution
 
  valarray<double> get_position(){
 
-   int i=0;
+   position[0]=time;
+   int i=1;
    for(int a=0; a<number_of_particles; a++)
      for(int axis=0; axis<space_dimension; axis++)
        {
@@ -340,7 +350,9 @@ class evolution
  }
 
   valarray<double> get_momentum(){
-    int i=0;
+
+    momentum[0]=time;
+    int i=1;
     for(int a=0; a<number_of_particles; a++)
       for(int axis=0; axis<space_dimension; axis++)
 	{
@@ -352,9 +364,10 @@ class evolution
 
   valarray<double> get_spin(){
 
-    int i=0;
+    spin[0]=time;
+    int i=1;
     
-    if(spin.size()>0)
+    if(spin.size()>1)
     for(int a=0; a<number_of_particles; a++)
       for(int axis=0; axis<space_dimension; axis++)
 	{
@@ -364,6 +377,8 @@ class evolution
     
     
    return spin; }
+
+  valarray<double> get_waves();
 
  
 };
