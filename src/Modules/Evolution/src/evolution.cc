@@ -1631,7 +1631,8 @@ valarray<double> evolution::get_waves(){
   double Qttt[3][3][3];
   double Ctt[3][3][3];
 
-
+  if(time==0)
+    return waves;
   for(int kk=0; kk < number_of_variables; kk++)
     ddy[kk] = (evolve->dydt_out[kk]-evolve->dydt_in[kk])/dt;
 
