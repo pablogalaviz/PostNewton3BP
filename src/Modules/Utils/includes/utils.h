@@ -40,6 +40,7 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_deriv.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_sf_pow_int.h>
 
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/support/date_time.hpp>
@@ -52,9 +53,12 @@
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/program_options.hpp>
+#include <boost/multi_array.hpp>
 
 
 #define MPI_ROOT_NODE 0
+
+#define DIMENSION 3
 
 #define X 0
 #define Y 1
@@ -75,6 +79,17 @@ namespace expr = boost::log::expressions;
 using namespace logging::trivial;
 using namespace std;
 
+typedef boost::multi_array<double, DIMENSION> array3D;
+typedef boost::multi_array_ref<double, DIMENSION> array3Dref;
+typedef boost::const_multi_array_ref<double, DIMENSION> array3Dref_const;
+typedef array3D::index index3D;
+typedef array3D::index_range range3D;
+typedef array3D::array_view<DIMENSION>::type arrayView3D;
+typedef array3D::index_gen indices3D;
+typedef array3Dref::array_view<DIMENSION>::type arrayView3Dref;
+typedef array3Dref::index_range range3Dref;
+
+
 string PN3BP_Logo();
 
 int Finalize(int e=0);
@@ -94,6 +109,9 @@ double get_id_value(vector<double> &v, int i, double def=0);
 size_t r_index(size_t a, size_t i, size_t space_dim);
 size_t p_index(size_t a, size_t i, size_t space_dim);
 size_t s_index(size_t a, size_t i, size_t space_dim);
+
+
+
 
 struct terms_t {
   bool pn1 = false; 

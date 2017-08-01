@@ -33,6 +33,7 @@
 #include<utils.h>
 #include<hdf5.h>
 #include<evolution.h>
+#include<analysis.h>
 #include<initial_data.h> 
 
 #define NDIMS 2
@@ -65,6 +66,8 @@ class output
 
   void create_dataset(string name, hid_t group_id, size_t ncols,int np, int dim);
 
+  void saveField(analysis &an, string name, double *data, hid_t group_id,double time=0);
+
   
  public:
 
@@ -73,12 +76,12 @@ class output
  ~output(){};
 
  
- void init(initialData &id, size_t index);
+ void init(initialData &id, size_t index, analysis &an);
   
-  void update(double t, int index,evolution &evo,  bool force=false);
+ void update(double t, int index,evolution &evo,  analysis &ana, bool force=false);
 
   inline void close(){hsize_t status = H5Fclose(file_id);}
- 
+  inline bool write_output(double t, bool force = false){  return t >= next_output || t==0 || force; }
 
 };
 

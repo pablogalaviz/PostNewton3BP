@@ -80,6 +80,23 @@ int main(int ac, char*av[])
       ("initial_data.phi_spin_3", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"Spin phi angle of body 3")
       ("initial_data.epsilon", po::value< vector<double> >()->default_value( vector<double>(), "0" ),"epsilon");
 
+    double cx;
+    double cy;
+    double cz;
+    double radius; 
+    size_t resolution; 
+    bool calculate_metric;
+    
+    po::options_description analysisOptions("Analysis options");
+    analysisOptions.add_options()
+      ("analysis.calculate_metric", po::value< bool >(&calculate_metric)->default_value(false),"Whether compute the metric.")
+      ("analysis.center_x", po::value< double >(&cx)->default_value(0),"Coordinate X of analysis domain.")
+      ("analysis.center_y", po::value< double >(&cy)->default_value(0),"Coordinate Y of analysis domain.")
+      ("analysis.center_z", po::value< double >(&cz)->default_value(0),"Coordinate Z of analysis domain.")
+      ("analysis.resolution", po::value< size_t>(&resolution)->default_value(64),"Resolution of analysis domain.")
+      ("analysis.radius", po::value< double >(&radius)->default_value(1000),"Radius of analysis domain.");
+
+    
     bool evolution_verbose;
     string ode_method;
     bool chaos_test;
@@ -153,10 +170,10 @@ int main(int ac, char*av[])
 
     
     po::options_description cmdline_options;
-    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions);
+    cmdline_options.add(genericOptions).add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions).add(analysisOptions);
 
     po::options_description config_file_options;
-    config_file_options.add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions);
+    config_file_options.add(evolutionOptions).add(outputOptions).add(termsOptions).add(idOptions).add(analysisOptions);
 
 
     po::variables_map vm;
@@ -227,6 +244,8 @@ int main(int ac, char*av[])
     int n =  id.sim_size();
 
     output my_output(output_directory,output_verbose, output_debug, delta_time);    
+
+    analysis my_analysis(calculate_metric,cx,cy,cz,radius, resolution);
     
     for(int i=0; i < n; i++)
       {
@@ -254,14 +273,17 @@ int main(int ac, char*av[])
 		       );
     
 
-	my_output.init(id,i);
+	my_output.init(id,i,my_analysis);
     
 	double t=0; 
 	bool proceed = true;
 	do{
 
-	  my_output.update(t,i,evol);
-
+	  if(my_output.write_output(t))
+	    my_analysis.update(evol);
+	      
+	  my_output.update(t,i,evol,my_analysis);
+	  
 	  proceed=evol.update(t);
 	  if(evolution_verbose)
 	    BOOST_LOG_SEV(lg, info) << setprecision(5) << "time: "<< t;
@@ -269,7 +291,8 @@ int main(int ac, char*av[])
       
 	}while(proceed);
 
-	my_output.update(t,i,evol,true);
+	my_analysis.update(evol);
+	my_output.update(t,i,evol,my_analysis,true);
 	my_output.close();
 	
       }    

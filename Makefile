@@ -96,7 +96,7 @@ libpaths = src/Modules/Evolution
 libpaths += src/Modules/Initial_data
 libpaths += src/Modules/Output
 libpaths += src/Modules/Utils
-
+libpaths += src/Modules/Analysis
 # ---------------------------------------------------------------
 
 PN1 = -DodePN1

@@ -2,6 +2,7 @@
 #include "initial_data.h"
 #include "output.h"
 #include "utils.h"
+#include "analysis.h"
 /*
 
    Title: Instalation

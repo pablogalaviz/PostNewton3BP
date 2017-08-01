@@ -55,6 +55,7 @@ evolution::evolution(
   
   verbose = _evolution_verbose;
 
+  iterations=0;  
   dt = _initial_dt;
   final_time = _final_time;
   dx = _Jacobian_dx;
@@ -171,6 +172,9 @@ evolution::evolution(
   for(int i =0; i < _mass.size(); i++)
     par[i]=_mass[i];
 
+  dy.resize(ode_size);
+  ym1.resize(ode_size);
+  ym2.resize(ode_size);
   ddy.resize(ode_size);
   
   system.dimension = ode_size;
@@ -195,11 +199,20 @@ void evolution::set_rhs(terms_t _pn_terms, bool jacA,bool _chaos_test, bool _spi
 
   position.resize(number_of_particles*space_dimension+1);
   momentum.resize(number_of_particles*space_dimension+1);
-  if(_spin)
+  dxdt.resize(number_of_particles*space_dimension+1);
+  dpdt.resize(number_of_particles*space_dimension+1);
+  ddxdt2.resize(number_of_particles*space_dimension+1);
+  ddpdt2.resize(number_of_particles*space_dimension+1);
+  if(_spin){
     spin.resize(number_of_particles*space_dimension+1);
-  else
+    dsdt.resize(number_of_particles*space_dimension+1);
+    ddsdt2.resize(number_of_particles*space_dimension+1);
+  }
+  else{
     spin.resize(1);
-
+    dsdt.resize(1);
+    ddsdt2.resize(1);
+  }
   rhs1PN_F = &evolution::rhs_zero;
   jac1PN_F = &evolution::jac_zero;
 
@@ -502,15 +515,23 @@ bool evolution::update(double &t)
 {
 
 
-  
 
+  ym2=ym1;
+  ym1=y;
+  dtm1=dt;
+  
   int status = gsl_odeiv_evolve_apply (evolve, control, step,
 				       &system,
 				       &time, final_time,
 				       &dt, &y[0]);
 
-
+  dt = time-t;
   
+  for(int kk=0; kk < number_of_variables; kk++)
+    dy[kk]=evolve->dydt_out[kk];
+
+  ddy = 2*(dtm1*y-(dt+dtm1)*ym1+dt*ym2)/(dt*dtm1*(dt+dtm1));
+
   if (status != GSL_SUCCESS)
     {
       BOOST_LOG_SEV(lg, error) << "Step failed at time step:"<< time;
@@ -518,8 +539,10 @@ bool evolution::update(double &t)
       exit(Finalize(0));
     }
 
-  t=time; 
-
+  
+  t=time;
+  iterations++;
+  
   return time < final_time; 
   
 }
@@ -1624,6 +1647,136 @@ double evolution::jac_numSOnloPN_F(double t, const double y[], double par[], int
 
 }
 
+valarray<double> evolution::get_position(){
+
+   position[0]=time;
+   int i=1;
+   for(int a=0; a<number_of_particles; a++)
+     for(int axis=0; axis<space_dimension; axis++)
+       {
+	 position[i]=y[r_index(a,axis,space_dimension)];
+	 i++;
+       }
+	 
+   return position;
+ }
+
+valarray<double> evolution::get_momentum(){
+
+    momentum[0]=time;
+    int i=1;
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  momentum[i]=y[p_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+   return momentum; }
+
+valarray<double> evolution::get_spin(){
+
+    spin[0]=time;
+    int i=1;
+    
+    if(spin.size()>1)
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  spin[i]=y[s_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+    
+   return spin; }
+
+
+valarray<double> evolution::get_dxdt(){
+
+   dxdt[0]=time;
+   int i=1;
+   for(int a=0; a<number_of_particles; a++)
+     for(int axis=0; axis<space_dimension; axis++)
+       {
+	 dxdt[i]=dy[r_index(a,axis,space_dimension)];
+	 i++;
+       }
+	 
+   return dxdt;
+ }
+
+valarray<double> evolution::get_dpdt(){
+
+    dpdt[0]=time;
+    int i=1;
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  dpdt[i]=dy[p_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+   return dpdt; }
+
+valarray<double> evolution::get_dsdt(){
+
+    dsdt[0]=time;
+    int i=1;
+    
+    if(dsdt.size()>1)
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  dsdt[i]=dy[s_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+    
+   return dsdt; }
+
+valarray<double> evolution::get_ddxdt2(){
+
+   ddxdt2[0]=time;
+   int i=1;
+   for(int a=0; a<number_of_particles; a++)
+     for(int axis=0; axis<space_dimension; axis++)
+       {
+	 ddxdt2[i]=ddy[r_index(a,axis,space_dimension)];
+	 i++;
+       }
+	 
+   return ddxdt2;
+ }
+
+valarray<double> evolution::get_ddpdt2(){
+
+    ddpdt2[0]=time;
+    int i=1;
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  ddpdt2[i]=ddy[p_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+   return ddpdt2; }
+
+valarray<double> evolution::get_ddsdt2(){
+
+    ddsdt2[0]=time;
+    int i=1;
+    
+    if(ddsdt2.size()>1)
+    for(int a=0; a<number_of_particles; a++)
+      for(int axis=0; axis<space_dimension; axis++)
+	{
+	  ddsdt2[i]=ddy[s_index(a,axis,space_dimension)];
+	 i++;
+	}
+    
+    
+   return ddsdt2; }
+
 
 valarray<double> evolution::get_waves(){
 
@@ -1633,14 +1786,12 @@ valarray<double> evolution::get_waves(){
 
   if(time==0)
     return waves;
-  for(int kk=0; kk < number_of_variables; kk++)
-    ddy[kk] = (evolve->dydt_out[kk]-evolve->dydt_in[kk])/dt;
+  
+  comp_Qtt(&y[0],&dy[0],&ddy[0],Qtt);
 
-  comp_Qtt(&y[0],&evolve->dydt_out[0],&ddy[0],Qtt);
+  comp_Qttt(&y[0],&dy[0],&ddy[0],Qttt);
 
-  comp_Qttt(&y[0],&evolve->dydt_out[0],&ddy[0],Qttt);
-
-  comp_Ctt(&y[0],&evolve->dydt_out[0],&ddy[0],Ctt);
+  comp_Ctt(&y[0],&dy[0],&ddy[0],Ctt);
 
   double h_sh[38]; //decomposition of h+, hx in spherical harmonics
 	
@@ -1661,7 +1812,7 @@ valarray<double> evolution::get_waves(){
   h_sh[0] = -1.5853309190424043*(Qtt[0][0] - Qtt[1][1]);
 
   h_sh[1] = -0.2642218198404007*(11.*Qtt[0][2] + Qtt[2][0]);
-
+  
   h_sh[2] = 1.2944172750371328*(Qtt[0][0] + Qtt[1][1] - 2.*Qtt[2][2]);
 
   h_sh[3] = -h_sh[1];
@@ -1763,21 +1914,16 @@ void evolution::comp_Qtt(const double y[], const double dydt[], const double ddy
   
   double Mtt[3][3];
 
-  double cm[] = {0,0,0};
-  double cmt[] = {0,0,0};
-  double cmt2[] = {0,0,0};
-
   for(int i=0; i< 3;i++)
     for(int j=0; j< 3;j++)
       {
 	Mtt[i][j] = 0;
-
-	if(i<space_dimension && j<space_dimension)
+ 	if(i<space_dimension && j<space_dimension)
 	  for(int a=0; a < num_par; a++){
 	    size_t I = r_index(a,i,space_dimension);
 	    size_t J = r_index(a,j,space_dimension);
 	    
-	    Mtt[i][j] += par[a]*((ddydt2[I]-cmt2[i])*(y[J]-cm[j])+2*(dydt[I]-cmt[i])*(dydt[J]-cmt[j])+(ddydt2[J]-cmt2[j])*(y[I]-cm[i]));
+	    Mtt[i][j] += par[a]*(ddydt2[I]*y[J]+2*dydt[I]*dydt[J]+ddydt2[J]*y[I]);
 	  }
 
       }
@@ -1786,11 +1932,11 @@ void evolution::comp_Qtt(const double y[], const double dydt[], const double ddy
   double Mtt_kk=0;
   for(int k=0; k< 3; k++)
     Mtt_kk += Mtt[k][k];
-
+  
   for(int i=0; i< 3; i++)
     for(int j=0; j< 3; j++)
       Qtt[i][j] = i==j ? Mtt[i][j]-Mtt_kk/3.0 : Mtt[i][j];
-
+  
 }
 
 

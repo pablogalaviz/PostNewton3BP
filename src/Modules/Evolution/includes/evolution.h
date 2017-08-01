@@ -37,6 +37,8 @@ class evolution
 
   src::severity_logger< severity_level > lg;
 
+  size_t iterations; 
+  
   bool verbose; 
 
   gsl_odeiv_evolve * evolve;
@@ -52,8 +54,11 @@ class evolution
   double final_time; 
 
   double dt; 
+  double dtm1;
 
   valarray<double> y;
+  valarray<double> ym1;
+  valarray<double> ym2;
   
   double dx; 
   
@@ -73,7 +78,14 @@ class evolution
   valarray<double> spin;
   valarray<double> waves;
 
+  valarray<double> dxdt;
+  valarray<double> dpdt;
+  valarray<double> dsdt;
   
+  valarray<double> ddxdt2;
+  valarray<double> ddpdt2;
+  valarray<double> ddsdt2;
+
   static int rhs(double t, const double * y, double * f, void * param);
 
   int rhsN(double t, const double * y, double * f, void * param);
@@ -335,50 +347,23 @@ class evolution
 
  void close();
 
- valarray<double> get_position(){
+ valarray<double> get_position();
+ valarray<double> get_momentum();
+ valarray<double> get_spin();
+ valarray<double> get_waves();
 
-   position[0]=time;
-   int i=1;
-   for(int a=0; a<number_of_particles; a++)
-     for(int axis=0; axis<space_dimension; axis++)
-       {
-	 position[i]=y[r_index(a,axis,space_dimension)];
-	 i++;
-       }
-	 
-   return position;
- }
+ valarray<double> get_dxdt();
+ valarray<double> get_dpdt();
+ valarray<double> get_dsdt();
+ 
+ valarray<double> get_ddxdt2();
+ valarray<double> get_ddpdt2();
+ valarray<double> get_ddsdt2();
 
-  valarray<double> get_momentum(){
+ inline valarray<double> get_mass(){return par; }
+ inline size_t get_space_dim(){return space_dimension;}   
+ inline size_t get_number_of_particles(){ return number_of_particles; }
 
-    momentum[0]=time;
-    int i=1;
-    for(int a=0; a<number_of_particles; a++)
-      for(int axis=0; axis<space_dimension; axis++)
-	{
-	  momentum[i]=y[p_index(a,axis,space_dimension)];
-	 i++;
-	}
-    
-   return momentum; }
-
-  valarray<double> get_spin(){
-
-    spin[0]=time;
-    int i=1;
-    
-    if(spin.size()>1)
-    for(int a=0; a<number_of_particles; a++)
-      for(int axis=0; axis<space_dimension; axis++)
-	{
-	  spin[i]=y[s_index(a,axis,space_dimension)];
-	 i++;
-	}
-    
-    
-   return spin; }
-
-  valarray<double> get_waves();
 
  
 };
