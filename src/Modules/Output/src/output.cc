@@ -74,7 +74,7 @@ output::output(string output_directory,bool _verbose, bool _debug, double _delta
 
 
 
-void output::init(initialData &id, size_t i)
+void output::init(initialData &id, size_t i,analysis &an)
 {
 
 
@@ -103,9 +103,34 @@ void output::init(initialData &id, size_t i)
   create_dataset("momentum", group_id, ncols,np,dim);
   create_dataset("spin", group_id, ncols,np,dim);
   create_dataset("waves", group_id, 39,np,dim);
+
+  create_dataset("dxdt", group_id, ncols,np,dim);
+  create_dataset("dpdt", group_id, ncols,np,dim);
+  create_dataset("dsdt", group_id, ncols,np,dim);
   
- 
+  create_dataset("ddxdt2", group_id, ncols,np,dim);
+  create_dataset("ddpdt2", group_id, ncols,np,dim);
+  create_dataset("ddsdt2", group_id, ncols,np,dim);
+
+  
   H5Gclose(group_id);
+
+
+  group_id = H5Gcreate(file_id,"coordinates", H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+
+  array3D  xx = an.getMeshX();
+  saveField(an, "x", xx.data(), group_id);
+  array3D  yy = an.getMeshY();
+  saveField(an, "y", yy.data(), group_id);
+  array3D  zz = an.getMeshZ();
+  saveField(an, "z", zz.data(), group_id);
+
+  H5Gclose(group_id);
+
+  ss_grp << "/fields";
+  group_id = H5Gcreate(file_id,ss_grp.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose(group_id);
+
   
   /* Close the file. */
   herr_t status = H5Fflush(file_id,H5F_SCOPE_LOCAL);
@@ -153,6 +178,7 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int
   H5Awrite(attribute_id, H5T_NATIVE_INT, &dim);
   H5Aclose(attribute_id);
   
+  
   H5Sclose(dataspace_id);
   
   H5Pclose(plist_id);
@@ -163,12 +189,12 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int
 }
 
 
-void output::update(double t, int index,evolution &evo , bool force)
+void output::update(double t, int index,evolution &evo, analysis &an , bool force)
 {
 
   iteration++;
 
-  if(t >= next_output || t==0 || force){
+  if(write_output(t,force)){
     if(verbose)
       {
 	BOOST_LOG_SEV(lg, logging::trivial::info) << "output at time t = " << t <<" - iteration "<< iteration;
@@ -182,10 +208,34 @@ void output::update(double t, int index,evolution &evo , bool force)
     save(evo.get_spin(),"spin",index);
     save(evo.get_waves(),"waves",index);
 
+    save(evo.get_dxdt(),"dxdt",index);
+    save(evo.get_dpdt(),"dpdt",index);
+    save(evo.get_dsdt(),"dsdt",index);
+
+    save(evo.get_ddxdt2(),"ddxdt2",index);
+    save(evo.get_ddpdt2(),"ddpdt2",index);
+    save(evo.get_ddsdt2(),"ddsdt2",index);
+
+
+    stringstream ss_grp;
+    ss_grp << "/"<< index << "/fields/"<< iteration_set[index];
     
-    next_output += delta_time;
+    hid_t  group_id = H5Gcreate(file_id,ss_grp.str().c_str(), H5P_DEFAULT,  H5P_DEFAULT, H5P_DEFAULT);
 
     
+    for(size_t i=0; i < DIMENSION; i++)
+      for(size_t j=0; j < DIMENSION; j++)
+	{
+	  array3D  mm = an.getMetric(i,j);
+	  stringstream metric_name;
+	  metric_name << "metric_"<<i<<"_"<<j; 
+	  saveField(an, metric_name.str(), mm.data(), group_id);
+	}
+
+  H5Gclose(group_id);
+    
+    next_output += delta_time;
+ 
   }
   
 }
@@ -236,6 +286,36 @@ void output::save(valarray<double> data, string group_name , size_t index)
   
   H5Dclose(dset_id);
   H5Gclose(group_id);
+  
+  
+}
+
+
+
+void output::saveField(analysis &mg, string name, double *data, hid_t group_id,double time)
+{  
+
+  BOOST_LOG_SEV(lg, logging::trivial::debug) << "Save field: "<< name;
+  
+  hsize_t dimsf[DIMENSION];
+  dimsf[X] = (hsize_t)mg.getN();
+  dimsf[Y] = (hsize_t)mg.getN();
+  dimsf[Z] = (hsize_t)mg.getN();  
+
+  hid_t dataspace_id = H5Screate_simple(DIMENSION, dimsf, NULL);  
+
+  hid_t dset_id = H5Dcreate2(group_id, name.c_str(), H5T_NATIVE_DOUBLE, dataspace_id,
+			    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  herr_t  status = H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT,  data);
+
+
+  status = H5Sclose(dataspace_id);
+
+   /* Close the first dataset. */
+   status = H5Dclose(dset_id);
+
+  
   
   
 }
