@@ -43,9 +43,9 @@ analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _rad
     for(index3D j=0; j<N; j++)
       for(index3D k=0; k<N; k++)
 	{
-	  m_x[i][j][k] = _cx-i*dxyz;
-	  m_y[i][j][k] = _cy-j*dxyz;
-	  m_z[i][j][k] = _cz-k*dxyz;
+	  m_x[i][j][k] = _cx-_radius+i*dxyz;
+	  m_y[i][j][k] = _cy-_radius+j*dxyz;
+	  m_z[i][j][k] = _cz-_radius+k*dxyz;
 	}
 
     mesh.push_back(m_x);
