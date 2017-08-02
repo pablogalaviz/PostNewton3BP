@@ -192,7 +192,6 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int
 void output::update(double t, int index,evolution &evo, analysis &an , bool force)
 {
 
-  iteration++;
 
   if(write_output(t,force)){
     if(verbose)
@@ -201,7 +200,6 @@ void output::update(double t, int index,evolution &evo, analysis &an , bool forc
 
       }
 
-    iteration_set[index]+=1;
 
     save(evo.get_position(),"position",index);
     save(evo.get_momentum(),"momentum",index);
@@ -232,9 +230,11 @@ void output::update(double t, int index,evolution &evo, analysis &an , bool forc
 	  saveField(an, metric_name.str(), mm.data(), group_id);
 	}
 
-  H5Gclose(group_id);
+    H5Gclose(group_id);
     
     next_output += delta_time;
+    iteration++;
+    iteration_set[index]+=1;
  
   }
   
@@ -256,14 +256,14 @@ void output::save(valarray<double> data, string group_name , size_t index)
   hid_t dset_id = H5Dopen (group_id, group_name.c_str(), H5P_DEFAULT);
   size_t ncols=data.size();
 
-  hsize_t      size[NDIMS]={iteration_set[index],ncols};
+  hsize_t      size[NDIMS]={iteration_set[index]+1,ncols};
   
   status = H5Dset_extent (dset_id, size);
 
   /* Select a hyperslab in extended portion of dataset  */
   hid_t filespace = H5Dget_space (dset_id);
 
-  hsize_t	offset[NDIMS] = {iteration_set[index]-1,0};
+  hsize_t	offset[NDIMS] = {iteration_set[index],0};
   hsize_t	count [NDIMS] = {1,ncols};	         
   
   status = H5Sselect_hyperslab (filespace, H5S_SELECT_SET, offset, NULL,

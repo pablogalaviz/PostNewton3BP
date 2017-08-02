@@ -90,24 +90,44 @@ void analysis::update(evolution &ev)
 	  double yy = mesh[Y][i][j][k];
 	  double zz = mesh[Z][i][j][k];
 	  double phi2=0;
+	  double phi4=0;
 	  for(int a=0; a < np; a++)
 	    {
 
-	      double xa = x[a*dim+X];
-	      double ya = x[a*dim+Y];
-	      double za = dim==DIMENSION ? x[a*dim+Z] : 0;
+	      double xa = x[a*dim+X+1];
+	      double ya = x[a*dim+Y+1];
+	      double za = dim==DIMENSION ? x[a*dim+Z+1] : 0;
+
+	      double pxa = p[a*dim+X+1];
+	      double pya = p[a*dim+Y+1];
+	      double pza = dim==DIMENSION ? p[a*dim+Z+1] : 0;
+
+	      double pa2=pxa*pxa+pya*pya+pza*pza; 
 	      
 	      double ra = sqrt(gsl_sf_pow_int(xx-xa,2)+gsl_sf_pow_int(yy-ya,2)+gsl_sf_pow_int(zz-za,2));
 	      phi2 += m[a]/ra;
+
+	      phi4 += pa2/(m[a]*ra);
+	      for(int b=0; b < np; b++)
+		if(a!=b)
+		  {
+		    double xb = x[b*dim+X+1];
+		    double yb = x[b*dim+Y+1];
+		    double zb = dim==DIMENSION ? x[b*dim+Z+1] : 0;
+		    double rab = sqrt(gsl_sf_pow_int(xb-xa,2)+gsl_sf_pow_int(yb-ya,2)+gsl_sf_pow_int(zb-za,2));
+		    phi4 -= m[a]*m[b]/(ra*rab);
+		  }
+
 	    }
 	  phi2 *= 4;
-
-	  double psi_PN=gsl_sf_pow_int(1+phi2,4);
+	  phi4 *= 2; 
+	  
+	  double psi_PN4=gsl_sf_pow_int(1+phi2+phi4,4);
 
 
 	  for(int I=0; I<DIMENSION; I++)
 	    {
-	      (*metric[I][I])[i][j][k] = psi_PN; 
+	      (*metric[I][I])[i][j][k] = psi_PN4; 
 	    }
 	  
 	}  
