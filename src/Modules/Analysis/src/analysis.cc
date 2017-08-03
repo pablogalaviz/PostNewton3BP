@@ -74,61 +74,128 @@ analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _rad
 void analysis::update(evolution &ev)
 {
 
-  valarray<double> x = ev.get_position();
-  valarray<double> p = ev.get_momentum();
+  valarray<double> position = ev.get_position();
+  valarray<double> momentum = ev.get_momentum();
   valarray<double> m = ev.get_mass();
 
   size_t np=ev.get_number_of_particles();
   size_t dim=ev.get_space_dim();
 
+  double x[np][DIMENSION];
+  double p[np][DIMENSION];
+  double rv[np][DIMENSION];
+  double n[np][DIMENSION];
+  double rrv[np][np][DIMENSION];
+  double nnv[np][np][DIMENSION];
+
+  for(int a=0; a<np; a++)
+    for(int d=0; d<DIMENSION; d++)
+    {
+      x[a][d]=0;
+      p[a][d]=0;
+      rv[a][d]=0;
+      n[a][d]=0;
+      for(int b=0; b<np; b++)
+	{
+	  rrv[a][b][d]=0;
+	  nnv[a][b][d]=0;
+	}
+    }
+
+  
+  double p2[np];
+  double r[np];
+  double n_p[np];
+  double rr[np][np];
+
+  for( int a =0; a < np; a++)
+    {
+      p2[a]=0;
+    for(int d=0; d < dim; d++)
+      {
+	x[a][d]=position[a*dim+d+1];
+	p[a][d]=momentum[a*dim+d+1];
+	p2[a]+=p[a][d];
+      }
+
+    for( int b =0; b < np; b++)
+      {
+	rr[a][b] =0;
+	for(int d=0; d < dim; d++)
+	  {
+	  rrv[a][b][d]+=x[b][d]-x[a][d];
+	  rr[a][b]+=gsl_sf_pow_int(rrv[a][b][d],2);
+	  }
+	rr[a][b] = sqrt(rr[a][b]);
+      }
+
+    for( int b =0; b < np; b++)
+      for(int d=0; d < dim; d++)
+	nnv[a][b][d]=rrv[a][b][d]/rr[a][b];
+    
+    }
+    
   for(index3D i=0; i<N; i++)
     for(index3D j=0; j<N; j++)
       for(index3D k=0; k<N; k++)
 	{
 	  
-	  double xx = mesh[X][i][j][k];
-	  double yy = mesh[Y][i][j][k];
-	  double zz = mesh[Z][i][j][k];
 	  double phi2=0;
 	  double phi4=0;
+	  double hTT4_t1=0;
 	  for(int a=0; a < np; a++)
-	    {
+	    {	      
+	      r[a]=0;
+	      for(int d=0; d < dim; d++)
+		{
+		  rv[a][d]=mesh[d][i][j][k]-x[a][d];
+		  r[a] += gsl_sf_pow_int(rv[a][d],2);
+		}
+	      r[a] = sqrt(r[a]);
 
-	      double xa = x[a*dim+X+1];
-	      double ya = x[a*dim+Y+1];
-	      double za = dim==DIMENSION ? x[a*dim+Z+1] : 0;
-
-	      double pxa = p[a*dim+X+1];
-	      double pya = p[a*dim+Y+1];
-	      double pza = dim==DIMENSION ? p[a*dim+Z+1] : 0;
-
-	      double pa2=pxa*pxa+pya*pya+pza*pza; 
+	      n_p[a]=0;
+	      for(int d=0; d < dim; d++)
+		{
+		  n[a][d] = rv[a][d]/r[a];
+		  n_p[a] += n[a][d]*p[a][d]; 
+		}
+	      	      
+	      phi2 += m[a]/r[a];
+	      phi4 += p2[a]/(m[a]*r[a]);
+	      hTT4_t1+=(p2[a]-5*n_p[a]*n_p[a])/(m[a]*r[a]);
 	      
-	      double ra = sqrt(gsl_sf_pow_int(xx-xa,2)+gsl_sf_pow_int(yy-ya,2)+gsl_sf_pow_int(zz-za,2));
-	      phi2 += m[a]/ra;
-
-	      phi4 += pa2/(m[a]*ra);
 	      for(int b=0; b < np; b++)
 		if(a!=b)
-		  {
-		    double xb = x[b*dim+X+1];
-		    double yb = x[b*dim+Y+1];
-		    double zb = dim==DIMENSION ? x[b*dim+Z+1] : 0;
-		    double rab = sqrt(gsl_sf_pow_int(xb-xa,2)+gsl_sf_pow_int(yb-ya,2)+gsl_sf_pow_int(zb-za,2));
-		    phi4 -= m[a]*m[b]/(ra*rab);
-		  }
-
+		  phi4 -= m[a]*m[b]/(r[a]*rr[a][b]);
+		  
 	    }
 	  phi2 *= 4;
 	  phi4 *= 2; 
+	  hTT4_t1*=0.25;
 	  
 	  double psi_PN4=gsl_sf_pow_int(1+phi2+phi4,4);
 
-
 	  for(int I=0; I<DIMENSION; I++)
-	    {
-	      (*metric[I][I])[i][j][k] = psi_PN4; 
-	    }
+	    for(int J=0; J<DIMENSION; J++)
+	      {
+		
+		(*metric[I][J])[i][j][k]=0;
+		if(I==J)
+		  (*metric[I][I])[i][j][k] = psi_PN4+hTT4_t1;
+
+		for(int a=0; a< np; a++)
+		  {
+		  (*metric[I][J])[i][j][k]+=2*p[a][I]*p[a][J] + (3*n_p[a]*n_p[a]-5*p2[a])*n[a][I]*n[a][J];
+		  (*metric[I][J])[i][j][k]+=12*n_p[a]*(n[a][I]*p[a][J]+n[a][J]*p[a][I]);
+
+		  for(int b=0; b<np; b++)
+		    if(a!=b)
+		    {
+		      double sab=r[a]+r[b]+rr[a][b];
+		      (*metric[I][J])[i][j][k] += m[a]*m[b]*0.125*(-32*(1./rr[a][b]+1./sab)*nnv[a][b][I]*nnv[a][b][J]/sab + 2*((r[a]+r[b])/gsl_sf_pow_int(rr[a][b],3)+12./(sab*sab) )*n[a][I]*n[a][J] );
+		    }
+		  }
+	      }
 	  
 	}  
   
