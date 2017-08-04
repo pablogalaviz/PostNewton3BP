@@ -37,7 +37,7 @@ class analysis
 {
 
   bool w_metric; 
-  size_t N; 
+  vector<size_t> N; 
 
   vector<array3D> mesh;
   
@@ -46,7 +46,7 @@ class analysis
 
  public:
 
-  analysis(bool _metric, double _cx, double _cy, double _cz, double _radius, size_t resolution );
+  analysis(bool _metric, double _cx, double _cy, double _cz, double _radius, vector<size_t> &resolution );
  ~analysis(){};
 
  void update(evolution &ev);
@@ -55,7 +55,8 @@ class analysis
  inline  array3Dref & getMeshY() { return mesh[Y];}
  inline  array3Dref & getMeshZ() { return mesh[Z];}
 
- inline size_t getN(){ return N;}
+ inline vector<size_t> getN(){ return N;}
+ inline size_t getN(size_t x){ return N[x];}
 
  inline  array3Dref & getMetric(size_t i, size_t j ) { return *metric[i][j];}
 

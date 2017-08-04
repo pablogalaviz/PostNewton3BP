@@ -29,30 +29,39 @@
 #include "analysis.h"
 
 
-analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _radius, size_t _resolution){
+analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _radius, vector<size_t> &_resolution){
   w_metric = _metric;
-  N=_resolution;
-
-  double dxyz = 2*_radius/(N-1.0);
+  for(int i =0; i < DIMENSION; i++)
+    {
+      size_t res_size= _resolution.size();
+    if(i < res_size)
+      N.push_back(_resolution[i]);
+    else
+      N.push_back(_resolution[res_size-1]);
+    }
   
-  array3D m_x(boost::extents[N][N][N]);
-  array3D m_y(boost::extents[N][N][N]);
-  array3D m_z(boost::extents[N][N][N]);
+  double dx = 2*_radius/(N[X]-1.0);
+  double dy = 2*_radius/(N[Y]-1.0);
+  double dz = 2*_radius/(N[Z]-1.0);
+  
+  array3D m_x(boost::extents[N[X]][N[Y]][N[Z]]);
+  array3D m_y(boost::extents[N[X]][N[Y]][N[Z]]);
+  array3D m_z(boost::extents[N[X]][N[Y]][N[Z]]);
 
-  for(index3D i=0; i<N; i++)
-    for(index3D j=0; j<N; j++)
-      for(index3D k=0; k<N; k++)
+  for(index3D i=0; i<N[X]; i++)
+    for(index3D j=0; j<N[Y]; j++)
+      for(index3D k=0; k<N[Z]; k++)
 	{
-	  m_x[i][j][k] = _cx-_radius+i*dxyz;
-	  m_y[i][j][k] = _cy-_radius+j*dxyz;
-	  m_z[i][j][k] = _cz-_radius+k*dxyz;
+	  m_x[i][j][k] = _cx-_radius+i*dx;
+	  m_y[i][j][k] = _cy-_radius+j*dy;
+	  m_z[i][j][k] = _cz-_radius+k*dz;
 	}
 
     mesh.push_back(m_x);
     mesh.push_back(m_y);
     mesh.push_back(m_z);
 
-    size_t N3= N*N*N;
+    size_t N3= N[X]*N[Y]*N[Z];
     metric_data.resize(DIMENSION*DIMENSION*N3);
 
     size_t indx=0;
@@ -61,7 +70,7 @@ analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _rad
 	vector< array3Dref* > new_row;      
 	for(int j=0; j<DIMENSION; j++)
 	  {
-	    new_row.push_back(new array3Dref(&metric_data[indx],boost::extents[N][N][N]));
+	    new_row.push_back(new array3Dref(&metric_data[indx],boost::extents[N[X]][N[Y]][N[Z]]));
 	    indx+=N3;
 	  }
 	metric.push_back(new_row);
@@ -135,9 +144,9 @@ void analysis::update(evolution &ev)
     
     }
     
-  for(index3D i=0; i<N; i++)
-    for(index3D j=0; j<N; j++)
-      for(index3D k=0; k<N; k++)
+  for(index3D i=0; i<N[X]; i++)
+    for(index3D j=0; j<N[Y]; j++)
+      for(index3D k=0; k<N[Z]; k++)
 	{
 	  
 	  double phi2=0;
@@ -190,9 +199,18 @@ void analysis::update(evolution &ev)
 
 		  for(int b=0; b<np; b++)
 		    if(a!=b)
-		    {
-		      double sab=r[a]+r[b]+rr[a][b];
-		      (*metric[I][J])[i][j][k] += m[a]*m[b]*0.125*(-32*(1./rr[a][b]+1./sab)*nnv[a][b][I]*nnv[a][b][J]/sab + 2*((r[a]+r[b])/gsl_sf_pow_int(rr[a][b],3)+12./(sab*sab) )*n[a][I]*n[a][J] );
+		      {
+			double sab=r[a]+r[b]+rr[a][b];
+			double terms=0;
+			terms -= 32*(1./rr[a][b]+1./sab)*nnv[a][b][I]*nnv[a][b][J]/sab;
+			terms += 2*((r[a]+r[b])/gsl_sf_pow_int(rr[a][b],3)+12./(sab*sab) )*n[a][I]*n[a][J];
+			terms +=  32*( 2./(sab*sab)-1./(rr[a][b]*rr[a][b]) )*(n[a][I]*nnv[a][b][J] +(n[a][J]*nnv[a][b][I]) );
+			terms += (5./(rr[a][b]*r[a]) - (r[b]*r[b]/r[a] + 3*r[a])/gsl_sf_pow_int(rr[a][b],3) - 8*(1./r[a]+1./sab)/sab )*n[a][I]*n[a][J];
+			if(I==J)
+			  terms += 5*r[a]*(r[a]/r[b] - 1)/gsl_sf_pow_int(rr[a][b],3)-17./(rr[a][b]*r[a]) + 4./(r[a]*r[b]) + 8*(1./r[a]+4./rr[a][b])/sab;
+			
+			(*metric[I][J])[i][j][k] += m[a]*m[b]*0.125*terms;
+
 		    }
 		  }
 	      }

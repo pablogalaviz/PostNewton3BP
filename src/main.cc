@@ -84,7 +84,7 @@ int main(int ac, char*av[])
     double cy;
     double cz;
     double radius; 
-    size_t resolution; 
+    vector<size_t> resolution; 
     bool calculate_metric;
     
     po::options_description analysisOptions("Analysis options");
@@ -93,7 +93,7 @@ int main(int ac, char*av[])
       ("analysis.center_x", po::value< double >(&cx)->default_value(0),"Coordinate X of analysis domain.")
       ("analysis.center_y", po::value< double >(&cy)->default_value(0),"Coordinate Y of analysis domain.")
       ("analysis.center_z", po::value< double >(&cz)->default_value(0),"Coordinate Z of analysis domain.")
-      ("analysis.resolution", po::value< size_t>(&resolution)->default_value(64),"Resolution of analysis domain.")
+      ("analysis.resolution", po::value< vector<size_t> >(&resolution)->default_value(vector<size_t>(),"64"),"Resolution of analysis domain.")
       ("analysis.radius", po::value< double >(&radius)->default_value(1000),"Radius of analysis domain.");
 
     

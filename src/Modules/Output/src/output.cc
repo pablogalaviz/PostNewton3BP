@@ -298,9 +298,9 @@ void output::saveField(analysis &mg, string name, double *data, hid_t group_id,d
   BOOST_LOG_SEV(lg, logging::trivial::debug) << "Save field: "<< name;
   
   hsize_t dimsf[DIMENSION];
-  dimsf[X] = (hsize_t)mg.getN();
-  dimsf[Y] = (hsize_t)mg.getN();
-  dimsf[Z] = (hsize_t)mg.getN();  
+  dimsf[X] = (hsize_t)mg.getN(X);
+  dimsf[Y] = (hsize_t)mg.getN(Y);
+  dimsf[Z] = (hsize_t)mg.getN(Z);  
 
   hid_t dataspace_id = H5Screate_simple(DIMENSION, dimsf, NULL);  
 
