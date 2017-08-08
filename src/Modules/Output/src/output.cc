@@ -98,19 +98,21 @@ void output::init(initialData &id, size_t i,analysis &an)
   size_t ncols=id.get_number_of_particles()*id.get_dimension()+1;
   size_t np=id.get_number_of_particles();
   size_t dim=id.get_dimension();
-  
-  create_dataset("position", group_id, ncols,np,dim);
-  create_dataset("momentum", group_id, ncols,np,dim);
-  create_dataset("spin", group_id, ncols,np,dim);
-  create_dataset("waves", group_id, 39,np,dim);
 
-  create_dataset("dxdt", group_id, ncols,np,dim);
-  create_dataset("dpdt", group_id, ncols,np,dim);
-  create_dataset("dsdt", group_id, ncols,np,dim);
+  valarray<double> mass = id.get_mass(i);
   
-  create_dataset("ddxdt2", group_id, ncols,np,dim);
-  create_dataset("ddpdt2", group_id, ncols,np,dim);
-  create_dataset("ddsdt2", group_id, ncols,np,dim);
+  create_dataset("position", group_id, ncols,np,dim,mass);
+  create_dataset("momentum", group_id, ncols,np,dim,mass);
+  create_dataset("spin", group_id, ncols,np,dim,mass);
+  create_dataset("waves", group_id, 39,np,dim,mass);
+
+  create_dataset("dxdt", group_id, ncols,np,dim,mass);
+  create_dataset("dpdt", group_id, ncols,np,dim,mass);
+  create_dataset("dsdt", group_id, ncols,np,dim,mass);
+  
+  create_dataset("ddxdt2", group_id, ncols,np,dim,mass);
+  create_dataset("ddpdt2", group_id, ncols,np,dim,mass);
+  create_dataset("ddsdt2", group_id, ncols,np,dim,mass);
 
   
   H5Gclose(group_id);
@@ -143,7 +145,7 @@ void output::init(initialData &id, size_t i,analysis &an)
 }
 
 
-void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int dim)
+void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int dim, valarray<double> &mass)
 {
 
   
@@ -177,7 +179,14 @@ void output::create_dataset(string name, hid_t group_id, size_t ncols,int np,int
   attribute_id = H5Acreate (dset_id, "dim",  H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
   H5Awrite(attribute_id, H5T_NATIVE_INT, &dim);
   H5Aclose(attribute_id);
+  H5Sclose(dataspace_id);
+
+  dims =static_cast<hsize_t>(np);
   
+  dataspace_id = H5Screate_simple(1, &dims, NULL);
+  attribute_id = H5Acreate (dset_id, "mass",  H5T_NATIVE_DOUBLE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(attribute_id, H5T_NATIVE_DOUBLE, &mass[0]);
+  H5Aclose(attribute_id);
   
   H5Sclose(dataspace_id);
   

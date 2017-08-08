@@ -64,7 +64,7 @@ class output
 
   void save(valarray<double> pos,string group_name, size_t index);
 
-  void create_dataset(string name, hid_t group_id, size_t ncols,int np, int dim);
+  void create_dataset(string name, hid_t group_id, size_t ncols,int np, int dim, valarray<double> &mass);
 
   void saveField(analysis &an, string name, double *data, hid_t group_id,double time=0);
 
