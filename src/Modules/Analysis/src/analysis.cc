@@ -34,10 +34,13 @@ analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _rad
   for(int i =0; i < DIMENSION; i++)
     {
       size_t res_size= _resolution.size();
-    if(i < res_size)
-      N.push_back(_resolution[i]);
-    else
-      N.push_back(_resolution[res_size-1]);
+      if(i < res_size)
+	N.push_back(_resolution[i]);
+      else
+	if(res_size>0)
+	  N.push_back(_resolution[res_size-1]);
+	else
+	  N.push_back(64);
     }
   
   double dx = 2*_radius/(N[X]-1.0);
@@ -83,6 +86,7 @@ analysis::analysis(bool _metric, double _cx, double _cy, double _cz, double _rad
 void analysis::update(evolution &ev)
 {
 
+  return; 
   valarray<double> position = ev.get_position();
   valarray<double> momentum = ev.get_momentum();
   valarray<double> m = ev.get_mass();

@@ -304,6 +304,7 @@ void output::save(valarray<double> data, string group_name , size_t index)
 void output::saveField(analysis &mg, string name, double *data, hid_t group_id,double time)
 {  
 
+  return; 
   BOOST_LOG_SEV(lg, logging::trivial::debug) << "Save field: "<< name;
   
   hsize_t dimsf[DIMENSION];
