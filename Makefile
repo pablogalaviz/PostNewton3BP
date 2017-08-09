@@ -1,4 +1,4 @@
-
+SHELL := /bin/bash
 
 #
 # Olliptic makefile
@@ -14,6 +14,7 @@ EXE = PN3BP
 # ---------------------------------------------------------------
 # Set compiler options
 # ---------------------------------------------------------------
+
 
 MPI_COMPILE_FLAGS = $(shell mpicc --showme:compile)
 MPI_LINK_FLAGS = $(shell mpicc --showme:link)

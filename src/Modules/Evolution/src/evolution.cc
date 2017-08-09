@@ -98,7 +98,7 @@ evolution::evolution(
       exit(Finalize(0));
     }
 
-  bool plane_constrain;
+  bool plane_constrain=false;
     
   if(number_of_particles==2 && !_spin)
     plane_constrain=true;
@@ -940,7 +940,6 @@ double evolution::jac_numN_F(double t, const double y[], double par[], int i, in
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1031,7 +1030,6 @@ double evolution::jac_num1PN_F(double t, const double y[], double par[], int i, 
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1121,7 +1119,6 @@ double evolution::jac_num2PN_F(double t, const double y[], double par[], int i, 
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1211,7 +1208,6 @@ double evolution::jac_num2_5PN_F(double t, const double y[], double par[], int i
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1301,7 +1297,6 @@ double evolution::jac_numSOloPN_F(double t, const double y[], double par[], int 
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1393,7 +1388,6 @@ double evolution::jac_numSSloPN_F(double t, const double y[], double par[], int 
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1483,7 +1477,6 @@ double evolution::jac_numS2loPN_F(double t, const double y[], double par[], int 
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
@@ -1573,7 +1566,6 @@ double evolution::jac_numSOnloPN_F(double t, const double y[], double par[], int
 
   double error;
 
-  double Linf = 0;
 
 
   for(int jj=0; jj<j; jj++)
